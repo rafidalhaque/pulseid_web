@@ -44,13 +44,14 @@ def generated_ble_uuid():
     result = {item["ble_uuid"]:item["member_id"] for item in results}
     return result
 
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["5 per second"],
-    storage_uri="memory://",
-)
+def limiter():
+    rate_limit = Limiter(
+        get_remote_address,
+        app=app,
+        default_limits=["5 per second"],
+        storage_uri="memory://",
+    )
+    return rate_limit
 @app.route("/", methods=["GET"])
 def main_page():
     #TODO
@@ -118,6 +119,12 @@ def record_attendance():
         db.session.commit()
 
     return {"success": True}, 201
+
+@app.route("/api/import-employee", methods=["POST"])
+@check_api_key
+def import_employee(file):
+    with open(file, "r") as f:
+        f.read()
 
 if __name__ == '__main__':
     with app.app_context():
