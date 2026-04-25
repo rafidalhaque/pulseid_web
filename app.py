@@ -44,14 +44,12 @@ def generated_ble_uuid():
     result = {item["ble_uuid"]:item["member_id"] for item in results}
     return result
 
-def limiter():
-    rate_limit = Limiter(
-        get_remote_address,
-        app=app,
-        default_limits=["5 per second"],
-        storage_uri="memory://",
-    )
-    return rate_limit
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["5 per second"],
+    storage_uri="memory://",
+)
 @app.route("/", methods=["GET"])
 def main_page():
     #TODO
