@@ -87,7 +87,7 @@ def record_attendance():
     employee_id = gened_uuids[ble_uuid]
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     todays_date = timestamp_object.date()
-    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.entry_time>=todays_date).first()
+    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
     if not attendance_status:
         attendance_new = Attendance(
             employee_id=employee_id,
