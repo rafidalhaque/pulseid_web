@@ -28,6 +28,7 @@ class Attendance(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_entries"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
+    date = db.Column(db.DateTime, nullable=False)
     entry_time = db.Column(db.DateTime, nullable=True)
     exit_time = db.Column(db.DateTime, nullable=True)
     entry_comment = db.Column(db.String(255), nullable=True)
