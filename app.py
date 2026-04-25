@@ -9,6 +9,17 @@ app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modify
 db.init_app(app)
 
+def check_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        key = request.headers.get("PASSWORD")
+        if not key:
+            abort(401, "No API key provided")
+        if key != api_key:
+            abort(401, "Invalid API key")
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route("/", methods=["GET"])
 def main_page():
     #TODO
