@@ -35,8 +35,9 @@ def generated_ble_uuid():
     todays_date = datetime.date.today().isoformat()
     results = []
     for member in member_uuid:
+        per_member_secret = db.session.query(Employees.master_secret).filter(Employees.id == member).first()
         time_wrapped_uuid = str(member.id) + todays_date
-        hashed = hmac.new(master_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
+        hashed = hmac.new(per_member_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
         resulted_uuid = str(uuid.UUID(hashed))
         results.append({
             "member_id": str(member.id),

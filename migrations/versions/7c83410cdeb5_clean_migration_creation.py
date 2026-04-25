@@ -1,8 +1,8 @@
-"""initial schema
+"""clean migration creation
 
-Revision ID: 4f8adf763b34
+Revision ID: 7c83410cdeb5
 Revises: 
-Create Date: 2026-04-25 23:23:58.698186
+Create Date: 2026-04-26 00:29:59.230044
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '4f8adf763b34'
+revision = '7c83410cdeb5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,17 +23,18 @@ def upgrade():
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('id_number', sa.Integer(), nullable=False),
-    sa.Column('join_date', sa.DateTime(), nullable=False),
+    sa.Column('join_date', sa.Date(), nullable=False),
     sa.Column('designation', sa.String(length=255), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=False),
     sa.Column('position', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('master_secret', sa.String(length=255), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('efd_attendance_entries',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('employee_id', sa.UUID(), nullable=True),
-    sa.Column('date', sa.DateTime(), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
     sa.Column('entry_time', sa.DateTime(), nullable=True),
     sa.Column('exit_time', sa.DateTime(), nullable=True),
     sa.Column('entry_comment', sa.String(length=255), nullable=True),
