@@ -1,4 +1,6 @@
 # main.py
+from functools import wraps
+
 from flask import *
 from database import *
 from config import *
@@ -25,14 +27,17 @@ def main_page():
     #TODO
     return render_template("index.html")
 
-@app.route("/whitelist", methods=["GET"])
+@app.route("/api/whitelist", methods=["GET"])
+@check_api_key
 def whitelist():
     """
     :return: current list of uuid's of members
     """
+    users_uuid = db.session.query(Employees.id).all()
     return {
-        "whitelist": []
+        "whitelist": [str(uid.id) for uid in users_uuid]
     }
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
