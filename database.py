@@ -5,10 +5,13 @@ from sqlalchemy.sql import func
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UUID
 
+import tools
+from config import *
+
 db = SQLAlchemy()
 
 class Employees(db.Model):
-    __tablename__ = 'employees'
+    __tablename__ = f"{table_prefix if table_prefix else ""}_employees"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), nullable=False)
@@ -22,10 +25,11 @@ class Employees(db.Model):
     attendance = db.relationship('Attendance', backref='employee', lazy=True)
 
 class Attendance(db.Model):
-    __tablename__ = 'attendance_entries'
+    __tablename__ = f"{table_prefix if table_prefix else ""}_attendance_entries"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey('employees.id'))
     entry_time = db.Column(db.DateTime, nullable=True)
     exit_time = db.Column(db.DateTime, nullable=True)
     entry_comment = db.Column(db.String(255), nullable=True)
     exit_comment = db.Column(db.String(255), nullable=True)
+    # current_secret = db.Column(db.String(255), nullable=True, default=generate_secret())
