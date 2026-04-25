@@ -36,7 +36,7 @@ class Attendance(db.Model):
 class AttendanceLog(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_logs"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    employeed_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
+    employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
     ble_uuid = db.Column(db.String(255), nullable=False)
     recorded_rssi = db.Column(db.Float, nullable=False)
     recorded_timestamp = db.Column(db.DateTime, nullable=False)
