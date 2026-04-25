@@ -41,3 +41,4 @@ class AttendanceLog(db.Model):
     ble_uuid = db.Column(db.String(255), nullable=False)
     recorded_rssi = db.Column(db.Float, nullable=False)
     recorded_timestamp = db.Column(db.DateTime, nullable=False)
+    event_type = db.Column(db.String(255), nullable=False, default="IN")
