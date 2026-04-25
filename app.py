@@ -120,9 +120,40 @@ def record_attendance():
 
 @app.route("/api/import-employee", methods=["POST"])
 @check_api_key
-def import_employee(file):
-    with open(file, "r") as f:
-        f.read()
+def import_employee():
+    try:
+        file = request.files["file"]
+        with io.TextIOWrapper(file.stream, encoding="utf-8-sig") as file_stream:
+            csv_file = csv.DictReader(file_stream)
+
+            employees = []
+            for row in csv_file:
+                name = row["name"].strip()
+                email = row["email"].strip()
+                id_number = int(row["id_number"].strip())
+                join_date = datetime.datetime.fromisoformat(row["join_date"].strip())
+                designation = row["designation"].strip()
+                password = generate_password_hash(row["password"].strip())
+                position = int(row["position"].strip())
+
+                upload_employees = Employees(
+                    name=name,
+                    email=email,
+                    id_number=id_number,
+                    join_date=join_date,
+                    designation=designation,
+                    password=password,
+                    position=position
+                )
+                employees.append(upload_employees)
+            db.session.add_all(employees)
+            db.session.commit()
+
+        return {"success": True}, 201
+
+    except KeyError:
+        message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
+        return f"{message}", 400
 
 if __name__ == '__main__':
     with app.app_context():
