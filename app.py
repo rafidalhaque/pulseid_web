@@ -1,6 +1,8 @@
 # main.py
 import datetime, hmac, hashlib, uuid, csv, io
 from functools import wraps
+from pathlib import Path
+
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -31,20 +33,17 @@ def generated_ble_uuid():
     master_secret + member_uuid + date.isoformat
     :return: hashed secret uuid
     """
-    member_uuid = db.session.query(Employees.id).all()
-    print(member_uuid)
+    employees_uuid = db.session.query(Employees.id, Employees.master_secret).all()
+    print(employees_uuid)
     todays_date = datetime.date.today().isoformat()
     results = []
-    for member in member_uuid:
-        per_member_secret = db.session.query(Employees.master_secret).filter(Employees.id == member).first()
-        print(per_member_secret)
-        print(member)
-        time_wrapped_uuid = str(member.id) + todays_date
-        hashed = hmac.new(per_member_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
-        resulted_uuid = str(uuid.UUID(hashed))
+    for emp in employees_uuid:
+        print(emp)
+        time_wrapped_uuid = str(emp.id) + todays_date
+        hashed = hmac.new(emp.master_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
         results.append({
-            "member_id": str(member.id),
-            "ble_uuid": resulted_uuid
+            "member_id": str(emp.id),
+            "ble_uuid": str(uuid.UUID(hashed))
         })
     result = {item["ble_uuid"]:item["member_id"] for item in results}
     return result
@@ -68,6 +67,7 @@ def whitelist():
     :return: current list of uuid's of members
     """
     users_uuid = db.session.query(Employees.id).all()
+    print(users_uuid)
     return {
         "whitelist": [str(uid.id) for uid in users_uuid]
     }, 200
@@ -85,7 +85,7 @@ def record_attendance():
         return abort(400, "Missing parameters")
 
     gened_uuids = generated_ble_uuid()
-
+    print(gened_uuids)
     if ble_uuid not in gened_uuids.keys():
         return abort(400, "BLE UUID mismatch")
 
@@ -93,6 +93,7 @@ def record_attendance():
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
+    print(attendance_status)
     if not attendance_status:
         attendance_new = Attendance(
             employee_id=employee_id,
@@ -130,6 +131,42 @@ def import_employee():
     try:
         file = request.files["file"]
         with io.TextIOWrapper(file.stream, encoding="utf-8-sig") as file_stream:
+            csv_file = csv.DictReader(file_stream)
+
+            employees = []
+            for row in csv_file:
+                name = row["name"].strip()
+                email = row["email"].strip()
+                id_number = int(row["id_number"].strip())
+                join_date = datetime.date.fromisoformat(row["join_date"].strip())
+                designation = row["designation"].strip()
+                password = generate_password_hash(row["password"].strip())
+                position = int(row["position"].strip())
+
+                upload_employees = Employees(
+                    name=name,
+                    email=email,
+                    id_number=id_number,
+                    join_date=join_date,
+                    designation=designation,
+                    password=password,
+                    position=position
+                )
+                employees.append(upload_employees)
+            db.session.add_all(employees)
+            db.session.commit()
+
+        return {"success": True}, 201
+
+    except KeyError:
+        message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
+        return f"{message}", 400
+
+@app.route("/api/seed-employee", methods=["GET"])
+def seed_employee_data():
+    try:
+        file = Path("test.csv")
+        with open(file, "r", encoding="utf-8-sig") as file_stream:
             csv_file = csv.DictReader(file_stream)
 
             employees = []
