@@ -6,7 +6,7 @@ from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from database import *
+from database import db, Employees, Attendance, AttendanceLog
 from config import *
 
 app = Flask(__name__)
@@ -32,10 +32,13 @@ def generated_ble_uuid():
     :return: hashed secret uuid
     """
     member_uuid = db.session.query(Employees.id).all()
+    print(member_uuid)
     todays_date = datetime.date.today().isoformat()
     results = []
     for member in member_uuid:
         per_member_secret = db.session.query(Employees.master_secret).filter(Employees.id == member).first()
+        print(per_member_secret)
+        print(member)
         time_wrapped_uuid = str(member.id) + todays_date
         hashed = hmac.new(per_member_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
         resulted_uuid = str(uuid.UUID(hashed))
@@ -133,7 +136,7 @@ def import_employee():
                 name = row["name"].strip()
                 email = row["email"].strip()
                 id_number = int(row["id_number"].strip())
-                join_date = datetime.datetime.fromisoformat(row["join_date"].strip())
+                join_date = datetime.date.fromisoformat(row["join_date"].strip())
                 designation = row["designation"].strip()
                 password = generate_password_hash(row["password"].strip())
                 position = int(row["position"].strip())

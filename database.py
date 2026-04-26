@@ -1,6 +1,5 @@
 # database.py
 import uuid
-from datetime import datetime
 from sqlalchemy.sql import func
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UUID
