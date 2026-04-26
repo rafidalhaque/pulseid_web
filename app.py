@@ -125,6 +125,7 @@ def record_attendance():
 
 @app.route("/api/import-employee", methods=["POST"])
 @check_api_key
+@limiter.limit("1 per second")
 def import_employee():
     try:
         file = request.files["file"]
