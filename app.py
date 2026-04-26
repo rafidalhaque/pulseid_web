@@ -66,10 +66,11 @@ def whitelist():
     """
     :return: current list of uuid's of members
     """
-    users_uuid = db.session.query(Employees.id).all()
-    print(users_uuid)
+    employees_secret = db.session.query(Employees.id, Employees.master_secret).all()
+    print(employees_secret)
     return {
-        "whitelist": [str(uid.id) for uid in users_uuid]
+        "whitelist": [{"member_id": str(emp.id), "member_key": emp.master_secret}
+                      for emp in employees_secret]
     }, 200
 
 @app.route("/api/attendance", methods=["POST"])
