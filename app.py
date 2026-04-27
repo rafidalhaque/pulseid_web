@@ -10,23 +10,13 @@ from flask_migrate import Migrate
 from flask import *
 from database import db, Employees, Attendance, AttendanceLog
 from config import *
-
+from auth import *
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modify
 db.init_app(app)
 migrate = Migrate(app, db)
-def check_api_key(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        key = request.headers.get("Authorization")
-        if not key:
-            abort(401, "No API key provided")
-        if key != api_key:
-            abort(401, "Invalid API key")
-        return f(*args, **kwargs)
-    return decorated_function
 
 def generated_ble_uuid():
     """
@@ -59,8 +49,35 @@ def main_page():
     #TODO
     return render_template("index.html")
 
-@app.route("/api/whitelist", methods=["GET"])
+@app.route("/api/login", methods=["POST", "GET"])
+@limiter.limit("5 per second")
+def login_route():
+    member_id = request.json.get("uuid")
+    member_pass = request.json.get("password")
+    employee = db.session.query(Employees).filter(Employees.id == str(member_id)).first()
+    if not employee or check_password_hash(employee.password, member_pass) == False:
+        return {"success": False, "message": "credentials did not matched"}, 403
+    token = generate_token(employee.id, employee.position)
+
+    return {"success": True, "token": token}, 200
+
+@app.route("/api/profile", methods=["GET"])
 @check_api_key
+@limiter.limit("5 per second")
+def profile_route():
+    employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
+    result = {
+        "id": str(employee.id),
+        "name": str(employee.name),
+        "email": str(employee.email),
+        "id_no": str(employee.id_number),
+        "join_date": str(employee.join_date),
+        "designation": str(employee.designation),
+        "position": str(employee.position),
+    }
+    return result
+@app.route("/api/whitelist", methods=["GET"])
+@check_secret_key
 @limiter.limit("5 per second")
 def whitelist():
     """
@@ -74,7 +91,7 @@ def whitelist():
     }, 200
 
 @app.route("/api/attendance", methods=["POST"])
-@check_api_key
+@check_secret_key
 @limiter.limit("5 per second")
 def record_attendance():
     ble_uuid = request.json.get("uuid")
@@ -126,7 +143,7 @@ def record_attendance():
     return {"success": True}, 201
 
 @app.route("/api/import-employee", methods=["POST"])
-@check_api_key
+@check_secret_key
 @limiter.limit("1 per second")
 def import_employee():
     try:
@@ -164,6 +181,7 @@ def import_employee():
         return f"{message}", 400
 
 @app.route("/api/seed-employee", methods=["GET"])
+@check_secret_key
 def seed_employee_data():
     try:
         file = Path("test.csv")
