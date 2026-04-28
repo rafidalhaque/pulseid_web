@@ -1,5 +1,6 @@
 # app.py
 import datetime, hmac, hashlib, uuid, csv, io
+import logging
 from functools import wraps
 from pathlib import Path
 
@@ -27,7 +28,6 @@ def generated_ble_uuid():
     todays_date = datetime.date.today().isoformat()
     results = []
     for emp in employees_uuid:
-        print(emp)
         time_wrapped_uuid = str(emp.id) + todays_date
         hashed = hmac.new(emp.master_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
         results.append({
@@ -54,12 +54,14 @@ def main_page():
 def login_route():
     emp_id = request.json.get("uuid")
     emp_pass = request.json.get("password")
+    logger.debug(f"employee id {emp_id} and password {emp_pass} received from request")
     employee = db.session.query(Employees).filter(Employees.id == str(emp_id)).first()
+    logger.debug(f"employee data fetched {employee}")
     if not employee or check_password_hash(employee.password, emp_pass) == False:
         logger.debug(f"credentials for {employee} is not matched")
         return {"success": False, "message": "credentials did not matched"}, 403
     token = generate_token(employee.id, employee.position)
-
+    logger.debug(f"token generated for {employee.id}")
     return {"success": True, "token": token}, 200
 
 @app.route("/api/profile", methods=["GET"])
@@ -67,6 +69,7 @@ def login_route():
 @limiter.limit("5 per second")
 def profile_route():
     employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
+    logging.debug(f"Employee Data Fetched {employee}")
     result = {
         "id": str(employee.id),
         "name": str(employee.name),
@@ -83,7 +86,8 @@ def profile_route():
 @limiter.limit("1 per second")
 def employee_key_route():
     employee_key = db.session.query(Employees.master_secret).filter(Employees.id == g.employee_id).first()
-    return str(employee_key.master_secret)
+    logger.debug(f"Employee Key Fetched {employee_key}")
+    return {"success": True, "master_secret": str(employee_key.master_secret)}, 200
 
 @app.route("/api/whitelist", methods=["GET"])
 @check_secret_key
