@@ -24,7 +24,6 @@ def generated_ble_uuid():
     :return: hashed secret uuid
     """
     employees_uuid = db.session.query(Employees.id, Employees.master_secret).all()
-    print(employees_uuid)
     todays_date = datetime.date.today().isoformat()
     results = []
     for emp in employees_uuid:
@@ -36,6 +35,7 @@ def generated_ble_uuid():
             "ble_uuid": str(uuid.UUID(hashed))
         })
     result = {item["ble_uuid"]:item["emp_id"] for item in results}
+    logger.debug(result)
     return result
 
 limiter = Limiter(
@@ -56,6 +56,7 @@ def login_route():
     emp_pass = request.json.get("password")
     employee = db.session.query(Employees).filter(Employees.id == str(emp_id)).first()
     if not employee or check_password_hash(employee.password, emp_pass) == False:
+        logger.debug(f"credentials for {employee} is not matched")
         return {"success": False, "message": "credentials did not matched"}, 403
     token = generate_token(employee.id, employee.position)
 
@@ -110,7 +111,6 @@ def record_attendance():
         return abort(400, "Missing parameters")
 
     gened_uuids = generated_ble_uuid()
-    print(gened_uuids)
     if ble_uuid not in gened_uuids.keys():
         return abort(400, "BLE UUID mismatch")
 
@@ -118,7 +118,6 @@ def record_attendance():
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
-    print(attendance_status)
     if not attendance_status:
         attendance_new = Attendance(
             employee_id=employee_id,

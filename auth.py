@@ -15,6 +15,7 @@ def generate_token(employee_id: str, employee_position: int):
         jwt_secret,
         algorithm="HS256",
     )
+    logger.debug(f"jwt token {jwt_token} for employee {employee_id}")
     return jwt_token
 
 def check_secret_key(f):
@@ -25,8 +26,10 @@ def check_secret_key(f):
     def decorated_function(*args, **kwargs):
         key = request.headers.get("X-Admin-Key")
         if not key:
+            logger.warn("X-Admin-Key not provided")
             abort(401, "No API key provided")
         if key != api_key:
+            logger.warn("X-Admin-Key not provided")
             abort(401, "Invalid API key")
         return f(*args, **kwargs)
     return decorated_function
@@ -37,8 +40,10 @@ def check_api_key(f):
         try:
             key = request.headers.get("Authorization")
             if not key:
+                logger.warn("Authorization header is not provided")
                 abort(401, "No API key provided")
             if not key.startswith("Bearer "):
+                logger.warn("Authorization header does not start with Bearer")
                 abort(401, "Invalid API key")
             the_key = key[7:]
             decoded_jwt = jwt.decode(the_key, jwt_secret, algorithms=["HS256"])
@@ -46,7 +51,9 @@ def check_api_key(f):
             g.employee_position = decoded_jwt["pos"]
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
+            logger.warn("Signature expired")
             abort(401, "Signature expired")
         except jwt.InvalidTokenError:
+            logger.warn("Invalid token")
             abort(401, "Invalid API key")
     return decorated_function

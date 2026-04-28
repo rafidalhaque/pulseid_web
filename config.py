@@ -1,5 +1,9 @@
+import sys
+
 from dotenv import load_dotenv
 import os
+import logging
+from logging_loki import *
 load_dotenv()
 
 db_url = os.getenv("DATABASE_URL")
@@ -8,3 +12,20 @@ table_prefix = os.getenv("DB_TABLE_PREFIX", "office")
 api_key = os.getenv("API_KEY", "change_me")
 master_secret = os.getenv("MASTER_SECRET", "change_me")
 jwt_secret = os.getenv("JWT_SECRET", "change_me")
+loki_url = os.getenv("LOKI_URL")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ]
+)
+logger = logging.getLogger(__name__)
+
+if loki_url:
+    loki_handler = LokiHandler(
+        url=loki_url,
+        tags={"application": "pulseid_backend"},
+        version="1",
+    )
+    logger.addHandler(loki_handler)
