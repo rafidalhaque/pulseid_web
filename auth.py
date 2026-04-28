@@ -7,7 +7,7 @@ from flask import *
 def generate_token(employee_id: str, employee_position: int):
     jwt_token = jwt.encode(
         {
-            "sub": employee_id,
+            "sub": str(employee_id),
             "pos": str(employee_position),
             "iat": datetime.datetime.today(),
             "exp": datetime.datetime.today() + datetime.timedelta(minutes=30),
