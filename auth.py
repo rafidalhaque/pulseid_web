@@ -23,7 +23,7 @@ def check_secret_key(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        key = request.headers.get("Authorization")
+        key = request.headers.get("Admin_Authorization")
         if not key:
             abort(401, "No API key provided")
         if key != api_key:
