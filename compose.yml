@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  pulseid_backend:
+    container_name: pulseid_backend
+    image: ghcr.io/rafidalhaque/pulseid_web:latest
+    env_file:
+      - .env
+    ports:
+      - 5998:5000
+    restart: unless-stopped
