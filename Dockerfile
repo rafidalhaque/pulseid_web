@@ -8,5 +8,7 @@ ENV PATH="/root/.local/bin:$PATH"
 
 RUN uv sync --frozen --no-dev
 COPY . .
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 EXPOSE 5000
-CMD ["uv", "run", "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["/entrypoint.sh"]
