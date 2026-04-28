@@ -32,10 +32,10 @@ def generated_ble_uuid():
         time_wrapped_uuid = str(emp.id) + todays_date
         hashed = hmac.new(emp.master_secret.encode(), time_wrapped_uuid.encode(), hashlib.sha256).hexdigest()[:32]
         results.append({
-            "member_id": str(emp.id),
+            "emp_id": str(emp.id),
             "ble_uuid": str(uuid.UUID(hashed))
         })
-    result = {item["ble_uuid"]:item["member_id"] for item in results}
+    result = {item["ble_uuid"]:item["emp_id"] for item in results}
     return result
 
 limiter = Limiter(
@@ -52,10 +52,10 @@ def main_page():
 @app.route("/api/login", methods=["POST", "GET"])
 @limiter.limit("5 per second")
 def login_route():
-    member_id = request.json.get("uuid")
-    member_pass = request.json.get("password")
-    employee = db.session.query(Employees).filter(Employees.id == str(member_id)).first()
-    if not employee or check_password_hash(employee.password, member_pass) == False:
+    emp_id = request.json.get("uuid")
+    emp_pass = request.json.get("password")
+    employee = db.session.query(Employees).filter(Employees.id == str(emp_id)).first()
+    if not employee or check_password_hash(employee.password, emp_pass) == False:
         return {"success": False, "message": "credentials did not matched"}, 403
     token = generate_token(employee.id, employee.position)
 
@@ -77,24 +77,23 @@ def profile_route():
     }
     return result
 
-@app.route("/api/member_key", methods=["GET"])
+@app.route("/api/employee_key", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
-def member_key_route():
-    member_key = db.session.query(Employees.master_secret).filter(Employees.id == g.employee_id).first()
-    return str(member_key.master_secret)
+def employee_key_route():
+    employee_key = db.session.query(Employees.master_secret).filter(Employees.id == g.employee_id).first()
+    return str(employee_key.master_secret)
 
 @app.route("/api/whitelist", methods=["GET"])
 @check_secret_key
 @limiter.limit("5 per second")
 def whitelist():
     """
-    :return: current list of uuid's of members
+    :return: current list of uuid's of employees
     """
     employees_secret = db.session.query(Employees.id, Employees.master_secret).all()
-    print(employees_secret)
     return {
-        "whitelist": [{"member_id": str(emp.id), "member_key": emp.master_secret}
+        "whitelist": [{"employee_id": str(emp.id), "employee_key": emp.master_secret}
                       for emp in employees_secret]
     }, 200
 
