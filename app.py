@@ -76,6 +76,14 @@ def profile_route():
         "position": str(employee.position),
     }
     return result
+
+@app.route("/api/member_key", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def member_key_route():
+    member_key = db.session.query(Employees.master_secret).filter(Employees.id == g.employee_id).first()
+    return str(member_key.master_secret)
+
 @app.route("/api/whitelist", methods=["GET"])
 @check_secret_key
 @limiter.limit("5 per second")
