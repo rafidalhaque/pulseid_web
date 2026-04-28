@@ -1,4 +1,4 @@
-# main.py
+# app.py
 import datetime, hmac, hashlib, uuid, csv, io
 from functools import wraps
 from pathlib import Path
@@ -225,4 +225,4 @@ def import_employee():
 #         return f"{message}", 400
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
