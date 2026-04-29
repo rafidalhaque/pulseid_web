@@ -1,6 +1,5 @@
 # app.py
 import datetime, hmac, hashlib, uuid, csv, io
-import logging
 from functools import wraps
 from pathlib import Path
 
@@ -69,7 +68,7 @@ def login_route():
 @limiter.limit("5 per second")
 def profile_route():
     employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
-    logging.debug(f"Employee Data Fetched {employee}")
+    logger.debug(f"Employee Data Fetched {employee}")
     result = {
         "id": str(employee.id),
         "name": str(employee.name),
