@@ -80,6 +80,8 @@ def profile_route():
     }
     return result
 
+@app.route("/api/attendance", methods=["GET"])
+
 @app.route("/api/employee_key", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
@@ -96,6 +98,7 @@ def whitelist():
     :return: current list of uuid's of employees
     """
     employees_secret = db.session.query(Employees.id, Employees.master_secret).all()
+    logger.debug(f"Employee ID and Master Secret fetched {employees_secret}")
     return {
         "whitelist": [{"employee_id": str(emp.id), "employee_key": emp.master_secret}
                       for emp in employees_secret]
@@ -109,15 +112,18 @@ def record_attendance():
     timestamp = request.json.get("timestamp")
     rssi = request.json.get("rssi")
     door = request.json.get("door")
-
+    logger.debug(f"ble uuid {ble_uuid if ble_uuid else 'none'}, timestamp {timestamp if timestamp else 'none'}, rssi {rssi if rssi else 'none'}, door {door if door else 'none'} fetched from request")
     if not ble_uuid or not timestamp or not rssi or not door:
+        logger.debug("parameter missing")
         return abort(400, "Missing parameters")
 
     gened_uuids = generated_ble_uuid()
     if ble_uuid not in gened_uuids.keys():
+        logger.debug(f"BLE UUID mismatch with {ble_uuid} and {gened_uuids.keys()}")
         return abort(400, "BLE UUID mismatch")
 
     employee_id = gened_uuids[ble_uuid]
+    logger.debug(f"{employee_id} mapped with ble_uuid")
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
@@ -136,9 +142,11 @@ def record_attendance():
             event_type="IN"
         )
         db.session.add(log_attendance)
+        logger.debug(f"New Attendance Saved in DB: {attendance_new} and {log_attendance}")
         db.session.commit()
     elif attendance_status:
         attendance_status.exit_time = timestamp_object
+        logger.debug(f"attendance exit time logged in DB: {attendance_status}")
         log_attendance = AttendanceLog(
             employee_id=employee_id,
             ble_uuid=ble_uuid,
@@ -147,6 +155,7 @@ def record_attendance():
             event_type="OUT"
         )
         db.session.add(log_attendance)
+        logger.debug(f"Attendance exit")
         db.session.commit()
 
     return {"success": True}, 201
