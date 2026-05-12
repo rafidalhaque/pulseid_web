@@ -55,3 +55,19 @@ class AttendanceLog(db.Model):
     recorded_rssi = db.Column(db.Float, nullable=False)
     recorded_timestamp = db.Column(db.DateTime, nullable=False)
     event_type = db.Column(db.String(255), nullable=False, default="IN")
+
+class LeaveEntries(db.Model):
+    __tablename__ = f"{table_prefix if table_prefix else ''}_leave_entries"
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
+    date = db.Column(db.Date, nullable=False)
+    leave_type = db.Column(db.String(255), nullable=False)
+    leave_cause = db.Column(db.Text, nullable=True)
+    approved = db.Column(db.Boolean, nullable=False, default=False)
+
+class Holidays(db.Model):
+    __tablename__ = f"{table_prefix if table_prefix else ''}_holidays"
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    date = db.Column(db.Date, nullable=False)
+    holiday_name = db.Column(db.String(255), nullable=False)
+    is_national = db.Column(db.Boolean, nullable=False, default=True)
