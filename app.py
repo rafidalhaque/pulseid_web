@@ -68,19 +68,25 @@ def login_route():
 @check_api_key
 @limiter.limit("5 per second")
 def profile_route():
-    employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
-    logger.debug(f"Employee Data Fetched {employee}")
-    result = {
-        "id": str(employee.id),
-        "name": str(employee.name),
-        "email": str(employee.email),
-        "id_no": str(employee.id_number),
-        "join_date": str(employee.join_date),
-        "designation": str(employee.designation),
-        "position": str(employee.position),
-        "is_admin": employee.is_admin,
-    }
-    return result
+    all_view = request.args.get("all", "false").lower() == "true"
+    logger.debug(f"all_view is {all_view}")
+    user_profile_view = request.args.get("uuid")
+    if all_view and g.is_admin:
+        employee = db.session.query(Employees).all()
+        logger.debug(f"employee data fetched {employee}")
+        return {"success": True, "employee": [e.to_dict() for e in employee]}, 200
+    elif user_profile_view and g.is_admin:
+        user_profile_uuid = uuid.UUID(user_profile_view)
+        employee = db.session.query(Employees).filter(Employees.id == user_profile_uuid).first()
+        logger.debug(f"employee data fetched {employee}")
+        history = db.session.query(Attendance).filter(Attendance.employee_id == user_profile_uuid).all()
+        logger.debug(f"attendance data fetched {history} for {employee}")
+        return {"success": True, "employee": employee.to_dict(), "history": [h.to_dict() for h in history]}, 200
+    else:
+        employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
+        logger.debug(f"Employee Data Fetched {employee}")
+        return {"success": True, "employee": employee.to_dict()}, 200
+
 
 @app.route("/api/attendance/present", methods=["GET"])
 @check_api_key
