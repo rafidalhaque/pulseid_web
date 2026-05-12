@@ -1,5 +1,8 @@
 # database.py
 import uuid
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
 from sqlalchemy.sql import func
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UUID
@@ -19,18 +22,19 @@ class Employees(db.Model):
     designation = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
     position = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=func.now())
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=func.now())
     master_secret = db.Column(db.String(255), nullable=True, default=gen_member_master_secret)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
+    attendance_log = db.relationship('AttendanceLog', back_populates='employee', lazy=True)
 
 class Attendance(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_entries"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
     date = db.Column(db.Date, nullable=False)
-    entry_time = db.Column(db.DateTime, nullable=True)
-    exit_time = db.Column(db.DateTime, nullable=True)
+    entry_time = db.Column(db.DateTime(timezone=True), nullable=True)
+    exit_time = db.Column(db.DateTime(timezone=True), nullable=True)
     entry_comment = db.Column(db.String(255), nullable=True)
     exit_comment = db.Column(db.String(255), nullable=True)
     employee = db.relationship('Employees', back_populates='attendance')
@@ -41,8 +45,8 @@ class Attendance(db.Model):
             "employee_id": str(self.employee_id),
             "employee_name": self.employee.name if self.employee else None,
             "date": str(self.date),
-            "entry_time": self.entry_time.isoformat() if self.entry_time else None,
-            "exit_time": self.exit_time.isoformat() if self.exit_time else None,
+            "entry_time": self.entry_time.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.entry_time else None,
+            "exit_time": self.exit_time.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.exit_time else None,
             "entry_comment": self.entry_comment,
             "exit_comment": self.exit_comment,
         }
@@ -53,8 +57,9 @@ class AttendanceLog(db.Model):
     employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
     ble_uuid = db.Column(db.String(255), nullable=False)
     recorded_rssi = db.Column(db.Float, nullable=False)
-    recorded_timestamp = db.Column(db.DateTime, nullable=False)
+    recorded_timestamp = db.Column(db.DateTime(timezone=True), nullable=False)
     event_type = db.Column(db.String(255), nullable=False, default="IN")
+    employee = db.relationship('Employees', back_populates='attendance_log')
 
     def to_dict(self):
         return {
