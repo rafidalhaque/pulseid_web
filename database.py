@@ -22,7 +22,7 @@ class Employees(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=func.now())
     master_secret = db.Column(db.String(255), nullable=True, default=gen_member_master_secret)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
-    attendance = db.relationship('Attendance', backref='employee', lazy=True)
+    attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
 
 class Attendance(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_entries"
@@ -33,11 +33,13 @@ class Attendance(db.Model):
     exit_time = db.Column(db.DateTime, nullable=True)
     entry_comment = db.Column(db.String(255), nullable=True)
     exit_comment = db.Column(db.String(255), nullable=True)
+    employee = db.relationship('Employees', back_populates='attendance')
 
     def to_dict(self):
         return {
             "id": str(self.id),
             "employee_id": str(self.employee_id),
+            "employee_name": self.employee.name if self.employee else None,
             "date": str(self.date),
             "entry_time": self.entry_time.isoformat() if self.entry_time else None,
             "exit_time": self.exit_time.isoformat() if self.exit_time else None,
