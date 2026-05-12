@@ -28,6 +28,17 @@ class Employees(db.Model):
     attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
     attendance_log = db.relationship('AttendanceLog', back_populates='employee', lazy=True)
 
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "name": str(self.name),
+            "email": str(self.email),
+            "id_number": str(self.id_number),
+            "join_date": str(self.join_date.strftime("%d %B,%Y")),
+            "designation": str(self.designation),
+            "position": str(self.position),
+            "is_admin": self.is_admin,
+        }
 class Attendance(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_entries"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
