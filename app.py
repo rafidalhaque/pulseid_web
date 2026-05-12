@@ -184,9 +184,11 @@ def record_attendance():
     return {"success": True}, 201
 
 @app.route("/api/import-employee", methods=["POST"])
-@check_secret_key
+@check_api_key
 @limiter.limit("1 per second")
 def import_employee():
+    if not g.is_admin:
+        return abort(403)
     try:
         file = request.files["file"]
         with io.TextIOWrapper(file.stream, encoding="utf-8-sig") as file_stream:
@@ -221,42 +223,6 @@ def import_employee():
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
         return f"{message}", 400
 
-@app.route("/api/seed-employee", methods=["GET"])
-@check_secret_key
-def seed_employee_data():
-    try:
-        file = Path("test.csv")
-        with open(file, "r", encoding="utf-8-sig") as file_stream:
-            csv_file = csv.DictReader(file_stream)
-
-            employees = []
-            for row in csv_file:
-                name = row["name"].strip()
-                email = row["email"].strip()
-                id_number = int(row["id_number"].strip())
-                join_date = datetime.date.fromisoformat(row["join_date"].strip())
-                designation = row["designation"].strip()
-                password = generate_password_hash(row["password"].strip())
-                position = int(row["position"].strip())
-
-                upload_employees = Employees(
-                    name=name,
-                    email=email,
-                    id_number=id_number,
-                    join_date=join_date,
-                    designation=designation,
-                    password=password,
-                    position=position
-                )
-                employees.append(upload_employees)
-            db.session.add_all(employees)
-            db.session.commit()
-
-        return {"success": True}, 201
-
-    except KeyError:
-        message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
-        return f"{message}", 400
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
