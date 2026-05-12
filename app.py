@@ -5,6 +5,7 @@ from pathlib import Path
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from pygments.regexopt import regex_opt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
@@ -77,10 +78,26 @@ def profile_route():
         "join_date": str(employee.join_date),
         "designation": str(employee.designation),
         "position": str(employee.position),
+        "is_admin": str(employee.is_admin),
     }
     return result
 
-@app.route("/api/attendance", methods=["GET"])
+@app.route("/api/attendance_history", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def attendance_history():
+    admin_view = request.args.get("all", "false").lower() == "true"
+    logger.debug(f"admin_view is {admin_view}")
+    employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
+    logger.debug(f"Employee Data Fetched {employee}")
+    if admin_view and employee.is_admin:
+        records = db.session.query(Attendance).all()
+    else:
+        records = db.session.query(Attendance).filter(
+            Attendance.employee_id == g.employee_id
+        ).all()
+
+    return {"success": True, "records": [r.to_dict() for r in records]}, 200
 
 @app.route("/api/employee_key", methods=["GET"])
 @check_api_key
