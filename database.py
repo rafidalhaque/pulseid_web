@@ -67,7 +67,7 @@ class AttendanceLog(db.Model):
             "employee_id": str(self.employee_id),
             "employee_name": self.employee.name if self.employee else None,
             "ble_uuid": str(self.ble_uuid),
-            "recorded_rssi": str(self.recorded_rssi),
+            "recorded_rssi": self.recorded_rssi,
             "recorded_timestamp": self.recorded_timestamp.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.recorded_timestamp else None,
             "event_type": str(self.event_type),
         }

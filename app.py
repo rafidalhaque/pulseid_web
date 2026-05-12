@@ -78,7 +78,7 @@ def profile_route():
         "join_date": str(employee.join_date),
         "designation": str(employee.designation),
         "position": str(employee.position),
-        "is_admin": str(employee.is_admin),
+        "is_admin": employee.is_admin,
     }
     return result
 
@@ -151,7 +151,7 @@ def record_attendance():
     if timestamp_object.tzinfo is None:
         timestamp_object = timestamp_object.replace(tzinfo=datetime.timezone.utc)
     todays_date = timestamp_object.date()
-    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
+    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date==todays_date).first()
     if not attendance_status:
         attendance_new = Attendance(
             employee_id=employee_id,
