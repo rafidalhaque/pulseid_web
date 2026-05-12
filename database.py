@@ -34,6 +34,17 @@ class Attendance(db.Model):
     entry_comment = db.Column(db.String(255), nullable=True)
     exit_comment = db.Column(db.String(255), nullable=True)
 
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "employee_id": str(self.employee_id),
+            "date": str(self.date),
+            "entry_time": self.entry_time.isoformat() if self.entry_time else None,
+            "exit_time": self.exit_time.isoformat() if self.exit_time else None,
+            "entry_comment": self.entry_comment,
+            "exit_comment": self.exit_comment,
+        }
+
 class AttendanceLog(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_logs"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
