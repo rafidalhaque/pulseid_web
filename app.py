@@ -148,6 +148,8 @@ def record_attendance():
     employee_id = gened_uuids[ble_uuid]
     logger.debug(f"{employee_id} mapped with ble_uuid")
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
+    if timestamp_object.tzinfo is None:
+        timestamp_object = timestamp_object.replace(tzinfo=datetime.timezone.utc)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date>=todays_date).first()
     if not attendance_status:
@@ -182,6 +184,16 @@ def record_attendance():
         db.session.commit()
 
     return {"success": True}, 201
+
+@app.route("/api/attendance/log", methods=["GET"])
+@check_api_key
+@limiter.limit("20 per second")
+def attendance_log():
+    if not g.is_admin:
+        return abort(403)
+    log = db.session.query(AttendanceLog).options(joinedload(AttendanceLog.employee)).all()
+
+    return {"success": True, "log":[l.to_dict() for l in log]}, 200
 
 @app.route("/api/import-employee", methods=["POST"])
 @check_api_key
