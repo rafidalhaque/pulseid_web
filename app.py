@@ -90,7 +90,7 @@ def currently_present():
     in_office = db.session.query(Attendance).options(joinedload(Attendance.employee)).filter(Attendance.date == today, Attendance.entry_time.isnot(None), Attendance.exit_time.is_(None)).all()
     return jsonify([a.to_dict() for a in in_office]), 200
 
-@app.route("/api/attendance_history", methods=["GET"])
+@app.route("/api/attendance/history", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
 def attendance_history():
