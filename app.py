@@ -1,5 +1,5 @@
 # app.py
-import datetime, hmac, hashlib, uuid, csv, io
+import datetime, hmac, hashlib, uuid, csv, io, click, secrets
 from functools import wraps
 from pathlib import Path
 
@@ -222,6 +222,30 @@ def import_employee():
     except KeyError:
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
         return f"{message}", 400
+
+@app.cli.command("create-service-account")
+def create_service_account():
+    name = "PulseID"
+    email = "service@pulse.id"
+    designation = "Service Account"
+    raw_passwd = secrets.token_urlsafe(16)
+
+    account = Employees(
+        name=name,
+        email=email,
+        id_number=0,
+        join_date=datetime.date.today(),
+        designation=designation,
+        password=generate_password_hash(raw_passwd),
+        position=0,
+        is_admin=True
+    )
+    db.session.add(account)
+    db.session.commit()
+    click.echo("Service Account created")
+    click.echo(f"Account ID: {account.id}")
+    click.echo(f"Password: {raw_passwd}")
+    click.echo("Save Account ID and Password Now in a secure place. Shown once only.")
 
 
 if __name__ == '__main__':
