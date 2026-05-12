@@ -21,6 +21,7 @@ class Employees(db.Model):
     position = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=func.now())
     master_secret = db.Column(db.String(255), nullable=True, default=gen_member_master_secret)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
     attendance = db.relationship('Attendance', backref='employee', lazy=True)
 
 class Attendance(db.Model):
