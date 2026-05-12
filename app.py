@@ -5,7 +5,6 @@ from pathlib import Path
 
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from pygments.regexopt import regex_opt
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
@@ -81,6 +80,14 @@ def profile_route():
         "is_admin": str(employee.is_admin),
     }
     return result
+
+@app.route("/api/attendance/present", methods=["GET"])
+@check_api_key
+@limiter.limit("20 per second")
+def currently_present():
+    today = datetime.date.today()
+    in_office = db.session.query(Attendance).filter(Attendance.date == today, Attendance.entry_time.isnot(None), Attendance.exit_time.is_(None)).all()
+    return jsonify([a.to_dict() for a in in_office]), 200
 
 @app.route("/api/attendance_history", methods=["GET"])
 @check_api_key
