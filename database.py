@@ -56,6 +56,16 @@ class AttendanceLog(db.Model):
     recorded_timestamp = db.Column(db.DateTime, nullable=False)
     event_type = db.Column(db.String(255), nullable=False, default="IN")
 
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "employee_id": str(self.employee_id),
+            "employee_name": self.employee.name if self.employee else None,
+            "ble_uuid": str(self.ble_uuid),
+            "recorded_rssi": str(self.recorded_rssi),
+            "recorded_timestamp": str(self.recorded_timestamp.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.recorded_timestamp else None),
+            "event_type": str(self.event_type),
+        }
 class LeaveEntries(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_leave_entries"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
