@@ -4,11 +4,12 @@ import jwt
 from config import *
 from flask import *
 
-def generate_token(employee_id: str, employee_position: int):
+def generate_token(employee_id: str, employee_position: int, employee_is_admin: bool):
     jwt_token = jwt.encode(
         {
             "sub": str(employee_id),
             "pos": str(employee_position),
+            "adm": employee_is_admin,
             "iat": datetime.datetime.today(),
             "exp": datetime.datetime.today() + datetime.timedelta(minutes=30),
         },
@@ -49,6 +50,7 @@ def check_api_key(f):
             decoded_jwt = jwt.decode(the_key, jwt_secret, algorithms=["HS256"])
             g.employee_id = decoded_jwt["sub"]
             g.employee_position = decoded_jwt["pos"]
+            g.is_admin = decoded_jwt["adm"]
             return f(*args, **kwargs)
         except jwt.ExpiredSignatureError:
             logger.warn("Signature expired")

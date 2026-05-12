@@ -60,7 +60,7 @@ def login_route():
     if not employee or check_password_hash(employee.password, emp_pass) == False:
         logger.debug(f"credentials for {employee} is not matched")
         return {"success": False, "message": "credentials did not matched"}, 403
-    token = generate_token(employee.id, employee.position)
+    token = generate_token(employee.id, employee.position, employee.is_admin)
     logger.debug(f"token generated for {employee.id}")
     return {"success": True, "token": token}, 200
 
@@ -96,9 +96,7 @@ def currently_present():
 def attendance_history():
     admin_view = request.args.get("all", "false").lower() == "true"
     logger.debug(f"admin_view is {admin_view}")
-    employee = db.session.query(Employees).filter(Employees.id == g.employee_id).first()
-    logger.debug(f"Employee Data Fetched {employee}")
-    if admin_view and employee.is_admin:
+    if admin_view and g.is_admin:
         records = db.session.query(Attendance).all()
     else:
         records = db.session.query(Attendance).filter(
