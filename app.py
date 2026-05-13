@@ -96,6 +96,14 @@ def currently_present():
     in_office = db.session.query(Attendance).options(joinedload(Attendance.employee)).filter(Attendance.date == today, Attendance.is_present.is_(True)).all()
     return jsonify([a.to_dict() for a in in_office]), 200
 
+@app.route("/api/attendance/left", methods=["GET"])
+@check_api_key
+@limiter.limit("20 per second")
+def left_today():
+    today = datetime.date.today()
+    not_in_office = db.session.query(Attendance).options(joinedload(Attendance.employee)).filter(Attendance.date == today, Attendance.is_present.is_(False), Attendance.exit_time.isnot(None)).all()
+    return jsonify([a.to_dict() for a in not_in_office]), 200
+
 @app.route("/api/attendance/history", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
