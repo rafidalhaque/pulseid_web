@@ -119,7 +119,7 @@ def attendance_history():
 
     return {"success": True, "records": [r.to_dict() for r in records]}, 200
 
-@app.route("/api/employee_key", methods=["GET"])
+@app.route("/api/employee/key", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
 def employee_key_route():
@@ -219,7 +219,7 @@ def attendance_log():
 
     return {"success": True, "log":[l.to_dict() for l in log]}, 200
 
-@app.route("/api/import-employee", methods=["POST"])
+@app.route("/api/employee/import", methods=["POST"])
 @check_api_key
 @limiter.limit("1 per second")
 def import_employee():
