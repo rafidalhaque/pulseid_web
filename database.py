@@ -34,7 +34,7 @@ class Employees(db.Model):
             "name": str(self.name),
             "email": str(self.email),
             "id_number": str(self.id_number),
-            "join_date": str(self.join_date.strftime("%d %B,%Y")),
+            "join_date": str(self.join_date.strftime("%d %B, %Y")),
             "designation": str(self.designation),
             "position": str(self.position),
             "is_admin": self.is_admin,
