@@ -127,6 +127,85 @@ def employee_key_route():
     logger.debug(f"Employee Key Fetched {employee_key}")
     return {"success": True, "master_secret": str(employee_key.master_secret)}, 200
 
+@app.route("/api/employee/add", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per second")
+def add_employee():
+    if not g.is_admin:
+        return abort(403)
+    name = request.json.get("name")
+    email = request.json.get("email")
+    id_number = int(request.json.get("id_number"))
+    join_date = datetime.date.fromisoformat(request.json.get("join_date"))
+    designation = request.json.get("designation")
+    password = generate_password_hash(request.json.get("password"))
+    position = int(request.json.get("position"))
+    is_admin = request.json.get("is_admin", False)
+
+    logger.debug(f"Employee data fetched: {name}, {email}, {id_number}, {join_date}, {designation}, {password}, {position}, {is_admin}")
+    if isinstance(is_admin, str):
+        is_admin = is_admin.lower() == "true"
+
+    if not all([name, email, id_number, join_date, designation, password, position]):
+        logger.debug("Missing Parameters")
+        return abort(400, "Missing parameters")
+
+    employee_add = Employees(
+        name=name,
+        email=email,
+        id_number=id_number,
+        join_date=join_date,
+        designation=designation,
+        password=password,
+        position=position,
+        is_admin=is_admin
+    )
+    db.session.add(employee_add)
+    logger.debug(f"Employee Added Successfully {employee_add}")
+    db.session.commit()
+
+    return {"success": True, "id": str(employee_add.id)}, 200
+
+@app.route("/api/employee/edit", methods=["PATCH"])
+@check_api_key
+@limiter.limit("1 per second")
+def edit_employee():
+    if not g.is_admin:
+        return abort(403)
+    name = request.json.get("name") if request.json.get("name") else None
+    email = request.json.get("email") if request.json.get("email") else None
+    id_number = int(request.json.get("id_number")) if request.json.get("id_number") else None
+    join_date = datetime.date.fromisoformat(request.json.get("join_date")) if request.json.get("join_date") else None
+    designation = request.json.get("designation") if request.json.get("designation") else None
+    password = generate_password_hash(request.json.get("password")) if request.json.get("password") else None
+    position = int(request.json.get("position")) if request.json.get("position") else None
+    is_admin = request.json.get("is_admin", None)
+    employee_uuid = request.json.get("uuid")
+    logger.debug(f"Employee data fetched: {name}, {email}, {id_number}, {join_date}, {designation}, {password}, {position}, {is_admin}, {employee_uuid}")
+
+    if isinstance(is_admin, str):
+        is_admin = is_admin.lower() == "true"
+
+    if not employee_uuid:
+        return abort(400, "Missing employee uuid")
+
+    employee = db.session.query(Employees).filter(Employees.id == employee_uuid).first()
+    if not employee:
+        return abort(404, "Employee not found")
+
+    # only update fields that were sent
+    if name: employee.name = name
+    if email: employee.email = email
+    if id_number: employee.id_number = id_number
+    if join_date: employee.join_date = join_date
+    if designation: employee.designation = designation
+    if position: employee.position = position
+    if is_admin is not None: employee.is_admin = is_admin
+    logger.debug(f"Employee Edited Successfully")
+    db.session.commit()
+
+    return {"success": True, "message": "Successfully Edited"}, 200
+
 @app.route("/api/whitelist", methods=["GET"])
 @check_secret_key
 @limiter.limit("5 per second")
