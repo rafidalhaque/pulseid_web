@@ -241,6 +241,9 @@ def record_attendance():
     employee_id = gened_uuids[ble_uuid]
     logger.debug(f"{employee_id} mapped with ble_uuid")
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
+    if timestamp_object.tzinfo is None:
+        bd_tz = datetime.timezone(datetime.timedelta(hours=6))
+        timestamp_object = timestamp_object.replace(tzinfo=bd_tz)
     timestamp_object = timestamp_object.astimezone(datetime.timezone.utc)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.date==todays_date).first()
