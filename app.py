@@ -93,7 +93,7 @@ def profile_route():
 @limiter.limit("20 per second")
 def currently_present():
     today = datetime.date.today()
-    in_office = db.session.query(Attendance).options(joinedload(Attendance.employee)).filter(Attendance.date == today, Attendance.entry_time.isnot(None), Attendance.exit_time.is_(None)).all()
+    in_office = db.session.query(Attendance).options(joinedload(Attendance.employee)).filter(Attendance.date == today, Attendance.is_present.is_(True)).all()
     return jsonify([a.to_dict() for a in in_office]), 200
 
 @app.route("/api/attendance/history", methods=["GET"])
@@ -157,12 +157,13 @@ def record_attendance():
     if timestamp_object.tzinfo is None:
         timestamp_object = timestamp_object.replace(tzinfo=datetime.timezone.utc)
     todays_date = timestamp_object.date()
-    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.exit_time.is_(None), Attendance.date==todays_date).first()
+    attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.date==todays_date).first()
     if not attendance_status:
         attendance_new = Attendance(
             employee_id=employee_id,
             date=todays_date,
-            entry_time=timestamp_object
+            entry_time=timestamp_object,
+            is_present=True
         )
         db.session.add(attendance_new)
         log_attendance = AttendanceLog(
@@ -175,16 +176,25 @@ def record_attendance():
         db.session.add(log_attendance)
         logger.debug(f"New Attendance Saved in DB: {attendance_new} and {log_attendance}")
         db.session.commit()
-    elif attendance_status:
-        attendance_status.exit_time = timestamp_object
-        logger.debug(f"attendance exit time logged in DB: {attendance_status}")
+    else:
+        last_log = db.session.query(AttendanceLog).filter(AttendanceLog.employee_id == employee_id,AttendanceLog.recorded_timestamp >= todays_date).order_by(AttendanceLog.recorded_timestamp.desc()).first()
+        last_event = last_log.event_type if last_log else None
+        if last_event == "OUT" or last_event is None:
+            attendance_status.exit_time = None
+            attendance_status.is_present = True
+            event_type = "IN"
+        else:
+            attendance_status.exit_time = timestamp_object
+            attendance_status.is_present = False
+            event_type = "OUT"
+            logger.debug(f"attendance exit time logged in DB: {attendance_status}")
         log_attendance = AttendanceLog(
-            employee_id=employee_id,
-            ble_uuid=ble_uuid,
-            recorded_rssi=rssi,
-            recorded_timestamp=timestamp_object,
-            event_type="OUT"
-        )
+                employee_id=employee_id,
+                ble_uuid=ble_uuid,
+                recorded_rssi=rssi,
+                recorded_timestamp=timestamp_object,
+                event_type=event_type
+            )
         db.session.add(log_attendance)
         logger.debug(f"Attendance exit")
         db.session.commit()

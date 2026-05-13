@@ -48,6 +48,7 @@ class Attendance(db.Model):
     exit_time = db.Column(db.DateTime(timezone=True), nullable=True)
     entry_comment = db.Column(db.String(255), nullable=True)
     exit_comment = db.Column(db.String(255), nullable=True)
+    is_present = db.Column(db.Boolean, nullable=False, default=True)
     employee = db.relationship('Employees', back_populates='attendance')
 
     def to_dict(self):
@@ -60,6 +61,7 @@ class Attendance(db.Model):
             "exit_time": self.exit_time.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.exit_time else None,
             "entry_comment": self.entry_comment,
             "exit_comment": self.exit_comment,
+            "is_present": self.is_present,
         }
 
 class AttendanceLog(db.Model):
