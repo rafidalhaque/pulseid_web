@@ -372,7 +372,7 @@ def add_work_policy():
     ).first()
     if overlap:
         return abort(400, "Policy overlaps with existing policy")
-    
+
     work_policy = WorkPolicy(
         start_date=start_date,
         end_date=end_date,
@@ -396,8 +396,8 @@ def edit_work_policy():
     end_date = datetime.date.fromisoformat(request.json.get("end_date")) if request.json.get("end_date") else None
     office_start = datetime.time.fromisoformat(request.json.get("office_start")) if request.json.get("office_start") else None
     office_end = datetime.time.fromisoformat(request.json.get("office_end")) if request.json.get("office_end") else None
-    late_minutes = int(request.json.get("late_minutes")) if request.json.get("late_minutes") else None
-    early_minutes = int(request.json.get("early_minutes")) if request.json.get("early_minutes") else None
+    late_minutes = int(request.json.get("late_minutes")) if request.json.get("late_minutes") is not None else None
+    early_minutes = int(request.json.get("early_minutes")) if request.json.get("early_minutes") is not None else None
     work_policy_id = uuid.UUID(request.json.get("work_policy_id"))
 
     if not work_policy_id:
@@ -406,6 +406,17 @@ def edit_work_policy():
     work_policy = db.session.query(WorkPolicy).filter(WorkPolicy.id == work_policy_id).first()
     if not work_policy:
         return abort(404, "Not found")
+
+    check_start = start_date if start_date is not None else work_policy.start_date
+    check_end = end_date if end_date is not None else work_policy.end_date
+
+    overlap = db.session.query(WorkPolicy).filter(
+        WorkPolicy.id != work_policy_id,
+        WorkPolicy.start_date <= check_end,
+        WorkPolicy.end_date >= check_start
+    ).first()
+    if overlap:
+        return abort(400, "Policy overlaps with existing policy")
 
     if start_date: work_policy.start_date = start_date
     if end_date: work_policy.end_date = end_date
