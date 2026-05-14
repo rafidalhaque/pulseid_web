@@ -115,8 +115,8 @@ class WorkPolicy(db.Model):
     end_date = db.Column(db.Date, nullable=False)
     office_start = db.Column(db.Time, nullable=False)
     office_end = db.Column(db.Time, nullable=False)
-    late_minutes = db.Column(db.Integer, nullable=False, default=15)
-    early_minutes = db.Column(db.Integer, nullable=False, default=15)
+    late_minutes = db.Column(db.Integer, nullable=False, default=0)
+    early_minutes = db.Column(db.Integer, nullable=False, default=0)
 
     def to_dict(self):
         return {
