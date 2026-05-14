@@ -105,5 +105,5 @@ class Holidays(db.Model):
             "id": str(self.id),
             "date": str(self.date),
             "holiday_name": str(self.holiday_name),
-            "is_national": str(self.is_national)
+            "is_national": self.is_national
         }
