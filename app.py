@@ -344,6 +344,8 @@ def import_employee():
 @check_api_key
 @limiter.limit("1 per second")
 def add_holiday():
+    if not g.is_admin:
+        return abort(403)
     holiday_date = datetime.date.fromisoformat(request.json.get("date"))
     holiday_name = request.json.get("name")
     is_national = request.json.get("is_national")
