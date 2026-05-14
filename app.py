@@ -363,9 +363,16 @@ def add_work_policy():
     late_minutes = int(request.json.get("late_minutes"))
     early_minutes = int(request.json.get("early_minutes"))
 
-    if not all([start_date, end_date, office_start, office_end, late_minutes, early_minutes]):
+    if not all([start_date, end_date, office_start, office_end, late_minutes is not None, early_minutes is not None]):
         return abort(400, "Missing Parameters")
 
+    overlap = db.session.query(WorkPolicy).filter(
+        WorkPolicy.start_date <= end_date,
+        WorkPolicy.end_date >= start_date
+    ).first()
+    if overlap:
+        return abort(400, "Policy overlaps with existing policy")
+    
     work_policy = WorkPolicy(
         start_date=start_date,
         end_date=end_date,
@@ -404,8 +411,8 @@ def edit_work_policy():
     if end_date: work_policy.end_date = end_date
     if office_start: work_policy.office_start = office_start
     if office_end: work_policy.office_end = office_end
-    if late_minutes: work_policy.late_minutes = late_minutes
-    if early_minutes: work_policy.early_minutes = early_minutes
+    if late_minutes is not None: work_policy.late_minutes = late_minutes
+    if early_minutes is not None: work_policy.early_minutes = early_minutes
 
     db.session.commit()
 
