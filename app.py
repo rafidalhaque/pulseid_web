@@ -340,6 +340,29 @@ def import_employee():
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
         return f"{message}", 400
 
+@app.route("/api/settings/holidays/add", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per second")
+def add_holiday():
+    holiday_date = datetime.date.fromisoformat(request.json.get("date"))
+    holiday_name = request.json.get("name")
+    is_national = request.json.get("is_national")
+
+    if isinstance(is_national, str):
+        is_national = is_national.lower() == "true"
+
+    if not all([holiday_date, holiday_name, is_national]):
+        return abort(400, "Missing Parameters")
+
+    holiday = Holidays(
+        date=holiday_date,
+        holiday_name=holiday_name,
+        is_national=is_national
+    )
+    db.session.add(holiday)
+    db.session.commit()
+
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
