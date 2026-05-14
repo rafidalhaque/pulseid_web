@@ -99,3 +99,11 @@ class Holidays(db.Model):
     date = db.Column(db.Date, nullable=False)
     holiday_name = db.Column(db.String(255), nullable=False)
     is_national = db.Column(db.Boolean, nullable=False, default=True)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "date": str(self.date),
+            "holiday_name": str(self.holiday_name),
+            "is_national": str(self.is_national)
+        }
