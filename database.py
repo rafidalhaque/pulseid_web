@@ -56,7 +56,7 @@ class Attendance(db.Model):
             "id": str(self.id),
             "employee_id": str(self.employee_id),
             "employee_name": self.employee.name if self.employee else None,
-            "date": str(self.date),
+            "date": str(self.date.strftime("%d %B, %Y")),
             "entry_time": self.entry_time.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.entry_time else None,
             "exit_time": self.exit_time.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.exit_time else None,
             "entry_comment": self.entry_comment,
@@ -91,7 +91,17 @@ class LeaveEntries(db.Model):
     date = db.Column(db.Date, nullable=False)
     leave_type = db.Column(db.String(255), nullable=False)
     leave_cause = db.Column(db.Text, nullable=True)
-    approved = db.Column(db.Boolean, nullable=False, default=False)
+    is_approved = db.Column(db.String(255), nullable=False, default="Not Approved")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "employee_id": str(self.employee_id),
+            "date": str(self.date.strftime("%d %B, %Y")),
+            "leave_type": str(self.leave_type),
+            "leave_cause": str(self.leave_cause),
+            "is_approved": str(self.is_approved)
+        }
 
 class Holidays(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_holidays"
