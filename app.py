@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
 from config import *
 from auth import *
 app = Flask(__name__)
@@ -288,6 +288,61 @@ def record_attendance():
         logger.debug(f"Attendance exit")
         db.session.commit()
 
+    return {"success": True}, 201
+
+@app.route("/api/attendance/leave", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def get_leave_reqs():
+    if not g.is_admin:
+        leave_reqs = db.session.query(LeaveEntries).filter(LeaveEntries.employee_id == g.employee_id).all()
+        return {"success": True, "body": [reqs.to_dict() for reqs in leave_reqs]}, 200
+
+    leave_reqs = db.session.query(LeaveEntries).all()
+
+    return {"success": True, "body": [reqs.to_dict() for reqs in leave_reqs]}, 200
+
+@app.route("/api/attendance/leave/add", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per second")
+def request_leave():
+    employee_id = uuid.UUID(g.employee_id)
+    requested_date = datetime.date.fromisoformat(request.json.get("date"))
+    leave_type = request.json.get("leave_type")
+    leave_cause = request.json.get("leave_cause")
+    is_approved = "Not Approved"
+
+    if not all([employee_id, requested_date, leave_type, leave_cause]):
+        return abort(400, "Missing parameters")
+
+    leave_req = LeaveEntries(
+        employee_id=employee_id,
+        date=requested_date,
+        leave_type=leave_type,
+        leave_cause=leave_cause,
+        is_approved=is_approved
+    )
+    db.session.add(leave_req)
+    db.session.commit()
+
+    return {"success": True}, 201
+
+@app.route("/api/attendance/leave/manage", methods=["PATCH"])
+@check_api_key
+@limiter.limit("1 per second")
+def handle_leave_reqs():
+    if not g.is_admin:
+        return abort(403)
+
+    is_approved = request.json.get("is_approved")
+    leave_req_id = uuid.UUID(request.json.get("id"))
+    leave_req = db.session.query(LeaveEntries).filter(LeaveEntries.id == leave_req_id).first()
+
+    if not leave_req:
+        return abort(404, "Leave request not found")
+
+    leave_req.is_approved = is_approved
+    db.session.commit()
     return {"success": True}, 201
 
 @app.route("/api/attendance/log", methods=["GET"])
