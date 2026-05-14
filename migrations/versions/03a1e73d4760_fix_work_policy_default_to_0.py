@@ -17,10 +17,10 @@ depends_on = None
 
 
 def upgrade():
-    op.alter_column('_work_policy', 'late_minutes', server_default='0')
-    op.alter_column('_work_policy', 'early_minutes', server_default='0')
+    op.alter_column('efd_work_policy', 'late_minutes', server_default='0')
+    op.alter_column('efd_work_policy', 'early_minutes', server_default='0')
 
 
 def downgrade():
-    op.alter_column('_work_policy', 'late_minutes', server_default='15')
-    op.alter_column('_work_policy', 'early_minutes', server_default='15')
+    op.alter_column('efd_work_policy', 'late_minutes', server_default='15')
+    op.alter_column('efd_work_policy', 'early_minutes', server_default='15')
