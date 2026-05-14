@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from database import db, Employees, Attendance, AttendanceLog
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy
 from config import *
 from auth import *
 app = Flask(__name__)
@@ -339,6 +339,77 @@ def import_employee():
     except KeyError:
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
         return f"{message}", 400
+
+@app.route("/api/settings/work_policy", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def get_work_policy():
+    if not g.is_admin:
+        return abort(403)
+    work_policy = db.session.query(WorkPolicy).all()
+
+    return {"success": True, "policy": [wp.to_dict() for wp in work_policy]}, 200
+
+@app.route("/api/settings/work_policy/add", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per second")
+def add_work_policy():
+    if not g.is_admin:
+        return abort(403)
+    start_date = datetime.date.fromisoformat(request.json.get("start_date"))
+    end_date = datetime.date.fromisoformat(request.json.get("end_date"))
+    office_start = datetime.time.fromisoformat(request.json.get("office_start"))
+    office_end = datetime.time.fromisoformat(request.json.get("office_end"))
+    late_minutes = int(request.json.get("late_minutes"))
+    early_minutes = int(request.json.get("early_minutes"))
+
+    if not all([start_date, end_date, office_start, office_end, late_minutes, early_minutes]):
+        return abort(400, "Missing Parameters")
+
+    work_policy = WorkPolicy(
+        start_date=start_date,
+        end_date=end_date,
+        office_start=office_start,
+        office_end=office_end,
+        late_minutes=late_minutes,
+        early_minutes=early_minutes
+    )
+    db.session.add(work_policy)
+    db.session.commit()
+    return {"success": True}, 201
+
+@app.route("/api/settings/work_policy/edit", methods=["PATCH"])
+@check_api_key
+@limiter.limit("1 per second")
+def edit_work_policy():
+    if not g.is_admin:
+        return abort(403)
+
+    start_date = datetime.date.fromisoformat(request.json.get("start_date")) if request.json.get("start_date") else None
+    end_date = datetime.date.fromisoformat(request.json.get("end_date")) if request.json.get("end_date") else None
+    office_start = datetime.time.fromisoformat(request.json.get("office_start")) if request.json.get("office_start") else None
+    office_end = datetime.time.fromisoformat(request.json.get("office_end")) if request.json.get("office_end") else None
+    late_minutes = int(request.json.get("late_minutes")) if request.json.get("late_minutes") else None
+    early_minutes = int(request.json.get("early_minutes")) if request.json.get("early_minutes") else None
+    work_policy_id = uuid.UUID(request.json.get("work_policy_id"))
+
+    if not work_policy_id:
+        return abort(400, "Invalid ID")
+
+    work_policy = db.session.query(WorkPolicy).filter(WorkPolicy.id == work_policy_id).first()
+    if not work_policy:
+        return abort(404, "Not found")
+
+    if start_date: work_policy.start_date = start_date
+    if end_date: work_policy.end_date = end_date
+    if office_start: work_policy.office_start = office_start
+    if office_end: work_policy.office_end = office_end
+    if late_minutes: work_policy.late_minutes = late_minutes
+    if early_minutes: work_policy.early_minutes = early_minutes
+
+    db.session.commit()
+
+    return {"success": True}, 200
 
 @app.route("/api/settings/holidays", methods=["GET"])
 @check_api_key
