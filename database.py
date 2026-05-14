@@ -107,3 +107,24 @@ class Holidays(db.Model):
             "holiday_name": str(self.holiday_name),
             "is_national": self.is_national
         }
+
+class WorkPolicy(db.Model):
+    __tablename__ = f"{table_prefix if table_prefix else ''}_work_policy"
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    office_start = db.Column(db.Time, nullable=False)
+    office_end = db.Column(db.Time, nullable=False)
+    late_minutes = db.Column(db.Integer, nullable=False, default=15)
+    early_minutes = db.Column(db.Integer, nullable=False, default=15)
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "start_date": str(self.start_date),
+            "end_date": str(self.end_date),
+            "office_start": str(self.office_start),
+            "office_end": str(self.office_end),
+            "late_minutes": self.late_minutes,
+            "early_minutes": self.early_minutes,
+        }
