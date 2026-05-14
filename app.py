@@ -518,6 +518,7 @@ def add_holiday():
     db.session.add(holiday)
     db.session.commit()
 
+    return {"success": True}, 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
