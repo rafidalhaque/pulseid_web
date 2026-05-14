@@ -340,6 +340,16 @@ def import_employee():
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
         return f"{message}", 400
 
+@app.route("/api/settings/holidays", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def get_holiday():
+    if not g.is_admin:
+        return abort(403)
+    holiday = db.session.query(Holidays).all()
+
+    return {"success": True, "holidays":[h.to_dict() for h in holiday]}, 200
+
 @app.route("/api/settings/holidays/add", methods=["POST"])
 @check_api_key
 @limiter.limit("1 per second")
