@@ -52,6 +52,33 @@ class Attendance(db.Model):
     employee = db.relationship('Employees', back_populates='attendance')
 
     def to_dict(self):
+        policy = db.session.query.filter(
+            WorkPolicy.start_date <= self.date,
+            WorkPolicy.end_date >= self.date
+        ).first()
+
+        late_minutes = None
+        early_minutes = None
+        overtime_minutes = None
+
+        if policy and self.entry_time:
+            entry = self.entry_time.astimezone(ZoneInfo("Asia/Dhaka")).time()
+            allowed_start = (datetime.combine(self.date, policy.office_start) + timedelta(
+                minutes=policy.late_minutes)).time()
+            if entry > allowed_start:
+                diff = datetime.combine(self.date, entry) - datetime.combine(self.date, policy.office_start)
+                late_minutes = int(diff.total_seconds() / 60)
+
+        if policy and self.exit_time:
+            exit_ = self.exit_time.astimezone(ZoneInfo("Asia/Dhaka")).time()
+            allowed_end = (
+                        datetime.combine(self.date, policy.office_end) - timedelta(minutes=policy.early_minutes)).time()
+            if exit_ < allowed_end:
+                diff = datetime.combine(self.date, policy.office_end) - datetime.combine(self.date, exit_)
+                early_minutes = int(diff.total_seconds() / 60)
+            if exit_ > policy.office_end:
+                diff = datetime.combine(self.date, exit_) - datetime.combine(self.date, policy.office_end)
+                overtime_minutes = int(diff.total_seconds() / 60)
         return {
             "id": str(self.id),
             "employee_id": str(self.employee_id),
@@ -62,6 +89,9 @@ class Attendance(db.Model):
             "entry_comment": self.entry_comment,
             "exit_comment": self.exit_comment,
             "is_present": self.is_present,
+            "late_entry": late_minutes,
+            "early_exit": early_minutes,
+            "overtime": overtime_minutes
         }
 
 class AttendanceLog(db.Model):
