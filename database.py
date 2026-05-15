@@ -1,6 +1,6 @@
 # database.py
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.sql import func
@@ -52,7 +52,7 @@ class Attendance(db.Model):
     employee = db.relationship('Employees', back_populates='attendance')
 
     def to_dict(self):
-        policy = db.session.query.filter(
+        policy = db.session.query(WorkPolicy).filter(
             WorkPolicy.start_date <= self.date,
             WorkPolicy.end_date >= self.date
         ).first()
