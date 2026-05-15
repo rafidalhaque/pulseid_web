@@ -137,6 +137,7 @@ class Holidays(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_holidays"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=True)
     holiday_name = db.Column(db.String(255), nullable=False)
     is_national = db.Column(db.Boolean, nullable=False, default=True)
 
@@ -144,6 +145,7 @@ class Holidays(db.Model):
         return {
             "id": str(self.id),
             "date": str(self.date),
+            "end_date": str(self.end_date) if self.end_date else None,
             "holiday_name": str(self.holiday_name),
             "is_national": self.is_national
         }
