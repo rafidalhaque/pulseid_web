@@ -606,6 +606,10 @@ def create_service_account():
     click.echo(f"Password: {raw_passwd}")
     click.echo("Save Account ID and Password Now in a secure place. Shown once only.")
 
+@app.route("/test-loki")
+def test_loki():
+    logger.error("🔥 LOKI TEST DIRECT FIRE")
+    return {"ok": True}
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=debug_mode)
