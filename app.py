@@ -393,7 +393,11 @@ def import_employee():
 
     except KeyError:
         message = "Use this format for your csv: name, email, id_number, join_date, designation, password, position"
+        logger.debug(message)
         return f"{message}", 400
+    except Exception as e:
+        logger.error(e)
+        return f"{e}", 500
 
 @app.route("/api/settings/work_policy", methods=["GET"])
 @check_api_key
