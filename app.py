@@ -361,11 +361,14 @@ def attendance_log():
 def import_employee():
     if not g.is_admin:
         return abort(403)
+    if "file" not in request.files:
+        logger.debug("no 'file' field in request")
+        return {"error": "no file field"}, 400
     try:
         file = request.files["file"]
         with io.TextIOWrapper(file.stream, encoding="utf-8-sig") as file_stream:
             csv_file = csv.DictReader(file_stream)
-
+            logger.debug(f"CSV headers detected: {csv_file.fieldnames}")
             employees = []
             for row in csv_file:
                 name = row["name"].strip()
