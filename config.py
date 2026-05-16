@@ -23,6 +23,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+metrics_logger = logging.getLogger("pulseid.metrics")
 debug_mode = os.getenv("DEBUG")
 if loki_url:
     loki_handler = LokiHandler(
@@ -31,3 +32,9 @@ if loki_url:
         version="1",
     )
     logger.addHandler(loki_handler)
+    metrics_loki = LokiHandler(
+        url=loki_url,
+        tags={"application": "pulseid_backend", "type": "esp32_metrics"},
+        version="1",
+    )
+    metrics_logger.addHandler(metrics_loki)
