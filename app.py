@@ -520,6 +520,27 @@ def add_holiday():
 
     return {"success": True}, 200
 
+esp32_pending_command = None
+
+@app.route("/api/admin/esp32/command", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per minute")
+def esp32_command():
+    if not g.is_admin:
+        return abort(404)
+    global esp32_pending_command
+    esp32_pending_command = request.json.get("command")
+    return {"success": True}, 200
+
+@app.route("/api/admin/esp32", methods=["GET"])
+@check_secret_key
+@limiter.limit("1 per second")
+def get_admin_command():
+    global esp32_pending_command
+    cmd = esp32_pending_command
+    esp32_pending_command = None
+    return {"success": True, "cmd": cmd or "none"}, 200
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
