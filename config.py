@@ -21,7 +21,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
+debug_mode = os.getenv("DEBUG")
 if loki_url:
     loki_handler = LokiHandler(
         url=loki_url,
