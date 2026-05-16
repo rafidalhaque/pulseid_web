@@ -368,6 +368,7 @@ def import_employee():
         file = request.files["file"]
         with io.TextIOWrapper(file.stream, encoding="utf-8-sig") as file_stream:
             csv_file = csv.DictReader(file_stream)
+            csv_file.fieldnames = [f.strip().lower() for f in csv_file.fieldnames]
             logger.debug(f"CSV headers detected: {csv_file.fieldnames}")
             employees = []
             for row in csv_file:
