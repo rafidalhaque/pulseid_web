@@ -559,13 +559,11 @@ def esp32_ping():
     global pong
     pong = data
     metrics_logger.info(
-        "esp32_ping",
+        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')}",
         extra={
             "tags": {
-                "uptime_ms": str(data.get("uptime_ms")),
-                "free_heap": str(data.get("free_heap")),
-                "wifi_rssi": str(data.get("wifi_rssi")),
-                "wifi_ip": data.get("wifi_ip"),
+                "device": "esp32",
+                "door": "main"
             }
         }
     )
