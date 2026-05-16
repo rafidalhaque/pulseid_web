@@ -13,8 +13,10 @@ api_key = os.getenv("API_KEY", "change_me")
 master_secret = os.getenv("MASTER_SECRET", "change_me")
 jwt_secret = os.getenv("JWT_SECRET", "change_me")
 loki_url = os.getenv("LOKI_URL")
+log_level = logging.DEBUG if os.getenv("DEBUG", "").lower() in ("true", "1") else logging.INFO
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
