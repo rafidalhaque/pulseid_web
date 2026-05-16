@@ -562,7 +562,7 @@ def esp32_ping():
 
 @app.route("/api/admin/esp32/ping", methods=["GET"])
 @check_api_key
-@limiter.limit("1 per second")
+@limiter.limit("20 per second")
 def admin_ping():
     if not g.is_admin:
         return abort(404)
