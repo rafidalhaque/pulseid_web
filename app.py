@@ -532,7 +532,7 @@ esp32_pending_command = None
 
 @app.route("/api/admin/esp32/command", methods=["POST"])
 @check_api_key
-@limiter.limit("1 per minute")
+@limiter.limit("1 per second")
 def esp32_command():
     if not g.is_admin:
         return abort(404)
