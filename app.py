@@ -532,7 +532,7 @@ def esp32_command():
     esp32_pending_command = request.json.get("command")
     return {"success": True}, 200
 
-@app.route("/api/admin/esp32", methods=["GET"])
+@app.route("/api/iot/esp32", methods=["GET"])
 @check_secret_key
 @limiter.limit("1 per second")
 def get_admin_command():
@@ -540,6 +540,28 @@ def get_admin_command():
     cmd = esp32_pending_command
     esp32_pending_command = None
     return {"success": True, "cmd": cmd or "none"}, 200
+
+pong = None
+
+@app.route("/api/iot/esp32/ping", methods=["POST"])
+@check_secret_key
+@limiter.limit("1 per second")
+def esp32_ping():
+    data = request.json
+    global pong
+    pong = data
+    return {"success": True}, 200
+
+@app.route("/api/admin/esp32/ping", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def admin_ping():
+    if not g.is_admin:
+        return abort(404)
+    global pong
+    if pong is None:
+        return {"success": False, "msg": "No ping data"}, 404
+    return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"]}, 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
