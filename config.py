@@ -4,7 +4,23 @@ from dotenv import load_dotenv
 import os
 import logging
 from logging_loki import *
+
 load_dotenv()
+
+class SafeLokiHandler(logging.Handler):
+    """A wrapper around LokiHandler that silently handles Loki failures."""
+    
+    def __init__(self, loki_handler):
+        super().__init__()
+        self.loki_handler = loki_handler
+    
+    def emit(self, record):
+        try:
+            self.loki_handler.emit(record)
+        except Exception as e:
+            # Silently ignore Loki failures to prevent cascading errors
+            # The error is already logged by the underlying handler
+            pass
 
 db_url = os.getenv("DATABASE_URL")
 track_modify = True
@@ -31,10 +47,13 @@ if loki_url:
         tags={"application": "pulseid_backend"},
         version="1",
     )
-    logger.addHandler(loki_handler)
+    safe_loki_handler = SafeLokiHandler(loki_handler)
+    logger.addHandler(safe_loki_handler)
+    
     metrics_loki = LokiHandler(
         url=loki_url,
         tags={"application": "pulseid_backend", "type": "esp32_metrics"},
         version="1",
     )
-    metrics_logger.addHandler(metrics_loki)
+    safe_metrics_loki = SafeLokiHandler(metrics_loki)
+    metrics_logger.addHandler(safe_metrics_loki)
