@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 import logging
 from logging_loki import *
+from cloudflare import Cloudflare
+
 
 load_dotenv()
 
@@ -30,7 +32,13 @@ master_secret = os.getenv("MASTER_SECRET", "change_me")
 jwt_secret = os.getenv("JWT_SECRET", "change_me")
 loki_url = os.getenv("LOKI_URL")
 log_level = logging.DEBUG if os.getenv("DEBUG", "").lower() in ("true", "1") else logging.INFO
-
+cf_client = Cloudflare(
+    api_key=os.getenv("CF_API_TOKEN"),
+)
+cf_bucket_name = os.getenv("CF_BUCKET_NAME")
+cf_ac_id = os.getenv("CF_ACCOUNT_ID")
+cf_public = os.getenv("CF_PUBLIC_URL")
+release_key =
 logging.basicConfig(
     level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

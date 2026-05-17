@@ -1,5 +1,7 @@
 # app.py
 import datetime, hmac, hashlib, uuid, csv, io, click, secrets
+import json
+import os
 from functools import wraps
 from pathlib import Path
 
@@ -580,6 +582,46 @@ def admin_ping():
         return {"success": False, "msg": "No ping data"}, 404
     logger.debug(f"Pong data {pong}")
     return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"], "ntp_time": pong["ntp_time"]}, 200
+
+@app.route("/api/app/release", methods=["POST"])
+@limiter.limit("1 per second")
+def upload_releases():
+    version_code = request.form.get("version_code")
+    version_name = request.form.get("version_name")
+    apk_file = request.files.get("apk")
+    key = request.headers.get("X-RELEASE-KEY")
+
+    if key != release_key:
+        return abort(400, "header mismatch")
+
+    if not all([version_code, version_name, apk_file]):
+        return jsonify({"success": False, "msg": "Missing Parameters"}), 400
+
+    version_data = {
+        "version_code": int(version_code),
+        "version_name": version_name,
+        "download_url": f"{cf_public}/pulseid-{version_name}.apk"
+    }
+    cf_client.r2.buckets.objects.put(
+        bucket_name=cf_bucket_name,
+        object_key=f"pulseid-{version_name}.apk",
+        account_id=cf_ac_id,
+        body=apk_file.read()
+    )
+    static_dir=os.path.join(app.root_path, "static")
+    os.makedirs(static_dir, exist_ok=True)
+    with open(os.path.join(static_dir, "version.json"), "w") as f:
+        json.dump(version_data, f)
+
+    return jsonify({"success": True}), 200
+
+@app.route("/api/app/version", methods=["GET"])
+@check_api_key
+@limiter.limit("10 per second")
+def check_update():
+    with open(os.path.join(app.root_path, "static", "version.json"), "r") as f:
+        version_json = json.loads(f.read())
+        return jsonify(version_json), 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
