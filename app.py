@@ -578,7 +578,7 @@ def admin_ping():
     global pong
     if pong is None:
         return {"success": False, "msg": "No ping data"}, 404
-    return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"]}, 200
+    return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"], "ntp_time": pong["ntp_time"]}, 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
