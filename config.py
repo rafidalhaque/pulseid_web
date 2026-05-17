@@ -38,7 +38,7 @@ cf_client = Cloudflare(
 cf_bucket_name = os.getenv("CF_BUCKET_NAME")
 cf_ac_id = os.getenv("CF_ACCOUNT_ID")
 cf_public = os.getenv("CF_PUBLIC_URL")
-release_key =
+release_key = os.getenv("RELEASE_KEY")
 logging.basicConfig(
     level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
