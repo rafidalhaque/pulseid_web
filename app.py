@@ -559,7 +559,7 @@ def esp32_ping():
     global pong
     pong = data
     metrics_logger.info(
-        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')}",
+        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')} ntp_time={data.get('ntp_time')}",
         extra={
             "tags": {
                 "device": "esp32",
@@ -578,6 +578,7 @@ def admin_ping():
     global pong
     if pong is None:
         return {"success": False, "msg": "No ping data"}, 404
+    logger.debug(f"Pong data {pong}")
     return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"], "ntp_time": pong["ntp_time"]}, 200
 
 @app.cli.command("create-service-account")
