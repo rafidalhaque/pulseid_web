@@ -602,7 +602,7 @@ def upload_releases():
         "version_name": version_name,
         "download_url": f"{cf_public}/pulseid-{version_name}.apk"
     }
-    cf_client.r2.buckets.objects.put(
+    cf_client.r2.buckets.objects.upload(
         bucket_name=cf_bucket_name,
         object_key=f"pulseid-{version_name}.apk",
         account_id=cf_ac_id,
