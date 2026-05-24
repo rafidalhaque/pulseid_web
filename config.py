@@ -5,7 +5,8 @@ import os
 import logging
 from logging_loki import *
 from cloudflare import Cloudflare
-
+import boto3
+from botocore.config import Config
 
 load_dotenv()
 
@@ -32,11 +33,19 @@ master_secret = os.getenv("MASTER_SECRET", "change_me")
 jwt_secret = os.getenv("JWT_SECRET", "change_me")
 loki_url = os.getenv("LOKI_URL")
 log_level = logging.DEBUG if os.getenv("DEBUG", "").lower() in ("true", "1") else logging.INFO
-cf_client = Cloudflare(
-    api_key=os.getenv("CF_API_TOKEN"),
+# cf_client = Cloudflare(
+#     api_key=os.getenv("CF_API_TOKEN"),
+# )
+cf_ac_id = os.getenv("CF_ACCOUNT_ID")
+cf_client = boto3.client(
+    "s3",
+    endpoint_url=f"https://{cf_ac_id}.r2.cloudflarestorage.com/",
+    aws_access_key_id=os.getenv("CF_ACCESS_KEY"),
+    aws_secret_access_key=os.getenv("CF_SECRET_KEY"),
+    config=Config(signature_version="s3v4")
 )
 cf_bucket_name = os.getenv("CF_BUCKET_NAME")
-cf_ac_id = os.getenv("CF_ACCOUNT_ID")
+
 cf_public = os.getenv("CF_PUBLIC_URL")
 release_key = os.getenv("RELEASE_KEY")
 logging.basicConfig(

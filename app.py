@@ -602,12 +602,18 @@ def upload_releases():
         "version_name": version_name,
         "download_url": f"{cf_public}/pulseid-{version_name}.apk"
     }
-    cf_client.r2.buckets.objects.upload(
-        bucket_name=cf_bucket_name,
-        object_key=f"pulseid-{version_name}.apk",
-        account_id=cf_ac_id,
-        body=apk_file.read()
-    )
+    try:
+        cf_client.put_object(
+            Bucket=cf_bucket_name,
+            Key=f"pulseid-{version_name}.apk",
+            account_id=cf_ac_id,
+            Body=apk_file,
+            ContentType="application/vnd.android.package-archive"
+        )
+    except Exception as e:
+        logger.error(f"R2 upload failed {str(e)}")
+        return jsonify({"success": False, "msg": "Storage upload failed"}), 500
+
     static_dir=os.path.join(app.root_path, "static")
     os.makedirs(static_dir, exist_ok=True)
     with open(os.path.join(static_dir, "version.json"), "w") as f:
