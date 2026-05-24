@@ -606,7 +606,6 @@ def upload_releases():
         cf_client.put_object(
             Bucket=cf_bucket_name,
             Key=f"pulseid-{version_name}.apk",
-            account_id=cf_ac_id,
             Body=apk_file,
             ContentType="application/vnd.android.package-archive"
         )
