@@ -1,6 +1,7 @@
 # app.py
-import datetime, hmac, hashlib, uuid, csv, io, click, secrets
-import json
+import datetime, hmac, hashlib, uuid
+import json, csv, io, click, secrets, tempfile
+import subprocess
 import os
 from functools import wraps
 from pathlib import Path
@@ -570,6 +571,62 @@ def esp32_ping():
         }
     )
     return {"success": True}, 200
+
+@app.route("/api/iot/esp32/nvs", methods=["POST"])
+@check_api_key
+@limiter.limit("1 per second")
+def generate_nvs():
+    if not g.is_admin:
+        return abort(404)
+
+    wifi_ssid = request.json.get("wifi_ssid")
+    base_url = request.json.get("base_url")
+    wifi_password = request.json.get("wifi_password")
+    ota_password = request.json.get("ota_password")
+
+    if not all([wifi_ssid, base_url, wifi_password, ota_password]):
+        return abort(400, "Missing Parameters")
+
+    base_url = "https://" + base_url.removeprefix("http://").removeprefix("https://")
+
+    nvs_csv = "key,type,encoding,value\n"
+    nvs_csv += "pulseid_secrets,namespace,,\n"
+    nvs_csv += f"base_url,data,string,{base_url}\n"
+    nvs_csv += f"api_key,data,string,{api_key}\n" # api_key is the secret key for connection between esp32 and server, fetched from config.py (.env)
+    nvs_csv += f"wifi_ssid,data,string,{wifi_ssid}\n"
+    nvs_csv += f"wifi_password,data,string,{wifi_password}\n"
+    nvs_csv += f"ota_password,data,string,{ota_password}\n"
+
+    csv_fd, csv_path = tempfile.mkstemp(suffix=".csv")
+    bin_fd, bin_path = tempfile.mkstemp(suffix=".bin")
+
+    try:
+        os.close(bin_fd)
+        with os.fdopen(csv_fd, "w") as f:
+            f.write(nvs_csv)
+
+        bin_gen = subprocess.run(
+            ["python", "-m", "esp_idf_nvs_partition_gen", "generate", csv_path, bin_path, "0x6000"],
+            capture_output=True, text=True
+        )
+        if bin_gen.returncode != 0:
+            logger.error(f"nvs_partition_gen failed: {bin_gen.stderr}")
+            return jsonify({"success": False, "msg": "nvs_partition_gen failed"}), 500
+
+        with open(bin_path, "rb") as f:
+            bin_data = f.read()
+
+    finally:
+        os.remove(csv_path)
+        os.remove(bin_path)
+
+    return Response(
+        bin_data,
+        mimetype="application/octet-stream",
+        headers={
+            "Content-Disposition": f"attachment; filename={os.path.basename(bin_path)}"
+        }
+    )
 
 @app.route("/api/admin/esp32/ping", methods=["GET"])
 @check_api_key
