@@ -645,26 +645,44 @@ def admin_ping():
 def upload_releases():
     version_code = request.form.get("version_code")
     version_name = request.form.get("version_name")
-    apk_file = request.files.get("apk")
+    released_file = request.files.get("released_file")
+    platform = request.form.get("platform")
     key = request.headers.get("X-RELEASE-KEY")
 
     if key != release_key:
         return abort(400, "header mismatch")
 
-    if not all([version_code, version_name, apk_file]):
+    if not all([version_code, version_name, released_file, platform]):
         return jsonify({"success": False, "msg": "Missing Parameters"}), 400
+    platform_map = {
+        "android": "apk",
+        "ios": "ipa",
+        "firmware": "bin",
+    }
+    if platform not in platform_map:
+        return jsonify({"success": False, "msg": "Unknown platform"}), 400
 
+    contenttype_map = {
+        "android": "application/vnd.android.package-archive",
+        "ios": "application/octet-stream",
+        "firmware": "application/octet-stream",
+    }
+    version_map = {
+        "android": "android_version.json",
+        "ios": "ios_version.json",
+        "firmware": "firmware_version.json",
+    }
     version_data = {
         "version_code": int(version_code),
         "version_name": version_name,
-        "download_url": f"{cf_public}/pulseid-{version_name}.apk"
+        "download_url": f"{cf_public}/{platform}/pulseid-{version_name}.{platform_map.get(platform)}"
     }
     try:
         cf_client.put_object(
             Bucket=cf_bucket_name,
-            Key=f"pulseid-{version_name}.apk",
-            Body=apk_file,
-            ContentType="application/vnd.android.package-archive"
+            Key=f"{platform}/pulseid-{version_name}.{platform_map.get(platform)}",
+            Body=released_file,
+            ContentType=contenttype_map.get(platform)
         )
     except Exception as e:
         logger.error(f"R2 upload failed {str(e)}")
@@ -672,7 +690,7 @@ def upload_releases():
 
     static_dir=os.path.join(app.root_path, "static")
     os.makedirs(static_dir, exist_ok=True)
-    with open(os.path.join(static_dir, "version.json"), "w") as f:
+    with open(os.path.join(static_dir, version_map.get(platform)), "w") as f:
         json.dump(version_data, f)
 
     return jsonify({"success": True}), 200
@@ -681,9 +699,21 @@ def upload_releases():
 @check_api_key
 @limiter.limit("10 per second")
 def check_update():
-    with open(os.path.join(app.root_path, "static", "version.json"), "r") as f:
-        version_json = json.loads(f.read())
-        return jsonify(version_json), 200
+    platform = request.args.get("platform")
+    version_map = {
+        "android": "android_version.json",
+        "ios": "ios_version.json",
+        "firmware": "firmware_version.json",
+    }
+    if platform not in version_map:
+        return jsonify({"success": False, "msg": "Unknown platform"}), 400
+
+    try:
+        with open(os.path.join(app.root_path, "static", version_map.get(platform)), "r") as f:
+            version_json = json.loads(f.read())
+            return jsonify(version_json), 200
+    except Exception as e:
+        return jsonify({"success": False, "msg": "No such file"}), 404
 
 @app.cli.command("create-service-account")
 def create_service_account():
