@@ -746,6 +746,10 @@ def test_loki():
     logger.error("🔥 LOKI TEST DIRECT FIRE")
     return {"ok": True}
 
+@app.route("/api/health")
+def health():
+    return {"status": "ok"}, 200
+
 @app.route("/api/settings/tz", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
