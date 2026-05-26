@@ -3,6 +3,7 @@ import datetime, hmac, hashlib, uuid
 import json, csv, io, click, secrets, tempfile
 import subprocess
 import os
+import time
 from functools import wraps
 from pathlib import Path
 
@@ -561,7 +562,7 @@ pong = None
 def esp32_ping():
     data = request.json
     global pong
-    pong = data
+    pong = {"data": data, "received_at": time.time()}
     metrics_logger.info(
         f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')} ntp_time={data.get('ntp_time')}",
         extra={
@@ -572,6 +573,23 @@ def esp32_ping():
         }
     )
     return {"success": True}, 200
+
+@app.route("/api/admin/esp32/ping", methods=["GET"])
+@check_api_key
+@limiter.limit("20 per second")
+def admin_ping():
+    if not g.is_admin:
+        return abort(404)
+    global pong
+    if pong is None:
+        return {"success": False, "msg": "No ping data"}, 404
+    age_seconds = time.time() - pong["received_at"]
+    if age_seconds > 30:
+        logger.debug(f"age {age_seconds}")
+        return {"success": False, "msg": "ESP32 offline (last seen {:.0f}s ago)".format(age_seconds)}, 404
+    logger.debug(f"Pong data {pong}")
+    return {"success": True, "uptime_ms": pong["data"]["uptime_ms"], "free_heap": pong["data"]["free_heap"], "wifi_ip": pong["data"]["wifi_ip"], "wifi_rssi": pong["data"]["wifi_rssi"], "ntp_time": pong["data"]["ntp_time"], "received_at": pong["received_at"]}, 200
+
 
 @app.route("/api/iot/esp32/nvs", methods=["POST"])
 @check_api_key
@@ -628,18 +646,6 @@ def generate_nvs():
             "Content-Disposition": f"attachment; filename={os.path.basename(bin_path)}"
         }
     )
-
-@app.route("/api/admin/esp32/ping", methods=["GET"])
-@check_api_key
-@limiter.limit("20 per second")
-def admin_ping():
-    if not g.is_admin:
-        return abort(404)
-    global pong
-    if pong is None:
-        return {"success": False, "msg": "No ping data"}, 404
-    logger.debug(f"Pong data {pong}")
-    return {"success": True, "uptime_ms": pong["uptime_ms"], "free_heap": pong["free_heap"], "wifi_ip": pong["wifi_ip"], "wifi_rssi": pong["wifi_rssi"], "ntp_time": pong["ntp_time"]}, 200
 
 @app.route("/api/app/release", methods=["POST"])
 @limiter.limit("1 per second")
