@@ -513,6 +513,7 @@ def add_holiday():
     holiday_date = datetime.date.fromisoformat(request.json.get("date"))
     holiday_name = request.json.get("name")
     is_national = request.json.get("is_national")
+    holiday_end_date = datetime.date.fromisoformat(request.json.get("end_date")) if request.json.get("end_date") else None
 
     if isinstance(is_national, str):
         is_national = is_national.lower() == "true"
@@ -523,6 +524,7 @@ def add_holiday():
     holiday = Holidays(
         date=holiday_date,
         holiday_name=holiday_name,
+        end_date=holiday_end_date,
         is_national=is_national
     )
     db.session.add(holiday)
