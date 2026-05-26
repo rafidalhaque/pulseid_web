@@ -245,8 +245,7 @@ def record_attendance():
     logger.debug(f"{employee_id} mapped with ble_uuid")
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     if timestamp_object.tzinfo is None:
-        bd_tz = datetime.timezone(datetime.timedelta(hours=6))
-        timestamp_object = timestamp_object.replace(tzinfo=bd_tz)
+        timestamp_object = timestamp_object.replace(tzinfo=local_tz)
     timestamp_object = timestamp_object.astimezone(datetime.timezone.utc)
     todays_date = timestamp_object.date()
     attendance_status = db.session.query(Attendance).filter(Attendance.employee_id == employee_id, Attendance.date==todays_date).first()
@@ -740,9 +739,16 @@ def create_service_account():
     click.echo("Save Account ID and Password Now in a secure place. Shown once only.")
 
 @app.route("/test-loki")
+@limiter.limit("1 per minute")
 def test_loki():
     logger.error("🔥 LOKI TEST DIRECT FIRE")
     return {"ok": True}
+
+@app.route("/api/settings/tz", methods=["GET"])
+@check_api_key
+@limiter.limit("1 per second")
+def tz_sync():
+    return {"success": True, "tz": os.environ.get("TZ", "Asia/Dhaka")}, 200
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=debug_mode)

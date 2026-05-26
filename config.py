@@ -7,6 +7,7 @@ from logging_loki import *
 from cloudflare import Cloudflare
 import boto3
 from botocore.config import Config
+from zoneinfo import ZoneInfo
 
 load_dotenv()
 
@@ -74,3 +75,5 @@ if loki_url:
     )
     safe_metrics_loki = SafeLokiHandler(metrics_loki)
     metrics_logger.addHandler(safe_metrics_loki)
+
+local_tz = ZoneInfo(os.getenv("TZ", "Asia/Dhaka"))
