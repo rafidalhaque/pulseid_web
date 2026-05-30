@@ -5,7 +5,7 @@ from config import *
 from flask import *
 
 def generate_token(employee_id: str, employee_position: int, employee_is_admin: bool):
-    dt_t = datetime.datetime.today()
+    dt_t = datetime.datetime.now(datetime.timezone.utc)
     logger.debug(f"datetime today {dt_t}")
     jwt_token = jwt.encode(
         {
@@ -61,4 +61,6 @@ def check_api_key(f):
         except jwt.InvalidTokenError:
             logger.warn("Invalid token")
             abort(401, "Invalid API key")
+        except Exception as e:
+            logger.warn(f"Unknown error: {e}")
     return decorated_function
