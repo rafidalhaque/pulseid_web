@@ -35,7 +35,7 @@ def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
     return topic, token
 
 def send_notification(topic: str, title: str, message: str, priority: str, click_url: str = None):
-    if not all([topic, title, message]):
+    if not all([topic, title, message, priority]):
         return "Missing parameters"
 
     headers = {

@@ -335,7 +335,17 @@ def request_leave():
     )
     db.session.add(leave_req)
     db.session.commit()
-
+    admins = db.session.query(Employees).filter_by(is_admin=True).all()
+    employee = db.session.query(Employees).filter_by(id=employee_id).first()
+    for admin in admins:
+        send_notification(
+            topic=admin.ntfy_topic,
+            title="New Leave Request",
+            message=f"{employee_id} requested leave on {requested_date} for {leave_type}",
+            priority="high",
+            click_url="pulseid://leaves/pending"
+        )
+        logger.debug(f"notification sent to {admin}")
     return {"success": True}, 201
 
 @app.route("/api/attendance/leave/manage", methods=["PATCH"])
