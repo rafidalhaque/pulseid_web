@@ -77,3 +77,5 @@ if loki_url:
     metrics_logger.addHandler(safe_metrics_loki)
 
 local_tz = ZoneInfo(os.getenv("TZ", "Asia/Dhaka"))
+ntfy_base = os.getenv("NTFY_BASE_URL")
+ntfy_admin_token = os.getenv("NTFY_ADMIN_TOKEN")

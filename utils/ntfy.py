@@ -6,17 +6,19 @@ def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
     password = secrets.token_hex(16)
     employee_id = str(employee_id)
 
+    username = "emp_" + employee_id[24:]
+
     # user creation
     httpx.put(
         f"{ntfy_base}/v1/user",
-        json={"username": employee_id, "password": password},
+        json={"username": username, "password": password},
         headers={"Authorization": f"Bearer {ntfy_admin_token}"},
         timeout=10,
     )
 
     # grant read only access to their topic
     httpx.put(
-        f"{ntfy_base}/v1/user/{employee_id}/access",
+        f"{ntfy_base}/v1/user/{username}/access",
         json={"topic": topic, "permission": "ro"},
         headers={"Authorization": f"Bearer {ntfy_admin_token}"},
         timeout=10,
@@ -24,7 +26,7 @@ def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
 
     # generate token for android
     response = httpx.post(
-        f"{ntfy_base}/v1/user/{employee_id}/token",
+        f"{ntfy_base}/v1/user/{username}/token",
         headers={"Authorization": f"Bearer {ntfy_admin_token}"},
         timeout=10,
     )
