@@ -68,7 +68,9 @@ def login_route():
         return {"success": False, "message": "credentials did not matched"}, 403
     token = generate_token(employee.id, employee.position, employee.is_admin)
     logger.debug(f"token generated for {employee.id}")
-    return {"success": True, "token": token}, 200
+    ntfy_token = employee.ntfy_token
+    ntfy_topic = employee.ntfy_topic
+    return {"success": True, "token": token, "ntfy_token": ntfy_token, "ntfy_topic": ntfy_topic}, 200
 
 @app.route("/api/profile", methods=["GET"])
 @check_api_key
@@ -341,7 +343,7 @@ def request_leave():
         send_notification(
             topic=admin.ntfy_topic,
             title="New Leave Request",
-            message=f"{employee_id} requested leave on {requested_date} for {leave_type}",
+            message=f"{employee.name} requested leave on {requested_date} for {leave_type}",
             priority="high",
             click_url="pulseid://leaves/pending"
         )
@@ -364,6 +366,15 @@ def handle_leave_reqs():
 
     leave_req.is_approved = is_approved
     db.session.commit()
+    leave_req = db.session.query(LeaveEntries).filter_by(id=leave_req_id).first()
+    employee = db.session.query(Employees).filter_by(id=leave_req.employee_id).first()
+    send_notification(
+        topic=employee.ntfy_topic,
+        title="Leave Update",
+        message=f"Your leave request for {leave_req.date} is {is_approved}",
+        priority="default",
+        click_url="pulseid://leaves/my"
+    )
     return {"success": True}, 201
 
 @app.route("/api/attendance/log", methods=["GET"])
