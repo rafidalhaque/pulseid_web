@@ -1,4 +1,4 @@
-import httpx, os, secrets
+import httpx, os, secrets, base64
 from config import ntfy_base, ntfy_admin_token
 
 def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
@@ -10,7 +10,7 @@ def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
 
     # user creation
     httpx.put(
-        f"{ntfy_base}/v1/user",
+        f"{ntfy_base}/v1/users",
         json={"username": username, "password": password},
         headers={"Authorization": f"Bearer {ntfy_admin_token}"},
         timeout=10,
@@ -18,20 +18,20 @@ def provision_ntfy_user(employee_id: str) -> tuple[str, str]:
 
     # grant read only access to their topic
     httpx.put(
-        f"{ntfy_base}/v1/user/{username}/access",
-        json={"topic": topic, "permission": "ro"},
+        f"{ntfy_base}/v1/users/access",
+        json={"username": username, "topic": topic, "permission": "ro"},
         headers={"Authorization": f"Bearer {ntfy_admin_token}"},
         timeout=10,
     )
 
     # generate token for android
+    userpass = f"{username}:{password}"
     response = httpx.post(
-        f"{ntfy_base}/v1/user/{username}/token",
-        headers={"Authorization": f"Bearer {ntfy_admin_token}"},
+        f"{ntfy_base}/v1/account/token",
+        headers={"Authorization": f"Basic {base64.b64encode(userpass.encode()).decode()}"},
         timeout=10,
     )
     token = response.json().get("token")
-
     return topic, token
 
 def send_notification(topic: str, title: str, message: str, priority: str, click_url: str = None):

@@ -14,7 +14,7 @@ with app.app_context():
         topic, token = provision_ntfy_user(str(emp.id))
         emp.ntfy_topic = topic
         emp.ntfy_token = token
-        print(f"Provisioned: {emp.name}")
+        print(f"Provisioned: {emp.name} | Topic {topic} | Token {token}")
 
     db.session.commit()
-    print("Done.")
+    print("Provision Done.")
