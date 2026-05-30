@@ -745,6 +745,7 @@ def upload_releases():
 @limiter.limit("10 per second")
 def check_update():
     platform = request.args.get("platform")
+    logger.debug(f"platform: {platform}")
     version_map = {
         "android": "android_version.json",
         "ios": "ios_version.json",
@@ -758,6 +759,7 @@ def check_update():
             version_json = json.loads(f.read())
             return jsonify(version_json), 200
     except Exception as e:
+        logger.debug(f"update check failed {str(e)}")
         return jsonify({"success": False, "msg": "No such file"}), 404
 
 @app.cli.command("create-service-account")
