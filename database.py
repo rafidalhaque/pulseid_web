@@ -25,6 +25,8 @@ class Employees(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=func.now())
     master_secret = db.Column(db.String(255), nullable=True, default=gen_member_master_secret)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    ntfy_token = db.Column(db.String(255), nullable=True)
+    ntfy_topic = db.Column(db.String(255), nullable=True)
     attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
     attendance_log = db.relationship('AttendanceLog', back_populates='employee', lazy=True)
 
