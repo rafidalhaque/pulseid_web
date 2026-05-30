@@ -732,12 +732,14 @@ def upload_releases():
     except Exception as e:
         logger.error(f"R2 upload failed {str(e)}")
         return jsonify({"success": False, "msg": "Storage upload failed"}), 500
-
-    static_dir=os.path.join(app.root_path, "static")
-    os.makedirs(static_dir, exist_ok=True)
-    with open(os.path.join(static_dir, version_map.get(platform)), "w") as f:
-        json.dump(version_data, f)
-
+    try:
+        static_dir=os.path.join(app.root_path, "static")
+        os.makedirs(static_dir, exist_ok=True)
+        with open(os.path.join(static_dir, version_map.get(platform)), "w") as f:
+            json.dump(version_data, f)
+    except Exception as e:
+        logger.error(f"{version_map.get(platform)} upload failed {str(e)}")
+        return jsonify({"success": False, "msg": "Storage upload failed"}), 500
     return jsonify({"success": True}), 200
 
 @app.route("/api/app/version", methods=["GET"])
