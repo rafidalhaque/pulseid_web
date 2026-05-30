@@ -47,7 +47,7 @@ def check_api_key(f):
                 logger.warn("Authorization header does not start with Bearer")
                 abort(401, "Invalid API key")
             the_key = key[7:]
-            logger.debug(f"token received: [{the_key[:20]}]")
+            logger.debug(f"token received: [{the_key}]")
             decoded_jwt = jwt.decode(the_key, jwt_secret, algorithms=["HS256"])
             g.employee_id = decoded_jwt["sub"]
             g.employee_position = decoded_jwt["pos"]
