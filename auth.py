@@ -5,13 +5,15 @@ from config import *
 from flask import *
 
 def generate_token(employee_id: str, employee_position: int, employee_is_admin: bool):
+    dt_t = datetime.datetime.today()
+    logger.debug(f"datetime today {dt_t}")
     jwt_token = jwt.encode(
         {
             "sub": str(employee_id),
             "pos": str(employee_position),
             "adm": employee_is_admin,
-            "iat": datetime.datetime.today(),
-            "exp": datetime.datetime.today() + datetime.timedelta(minutes=30),
+            "iat": dt_t,
+            "exp": dt_t + datetime.timedelta(minutes=30),
         },
         jwt_secret,
         algorithm="HS256",
