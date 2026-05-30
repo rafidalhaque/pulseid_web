@@ -60,7 +60,7 @@ def main_page():
 def login_route():
     emp_id = request.json.get("uuid")
     emp_pass = request.json.get("password")
-    logger.debug(f"employee id {emp_id} and password {emp_pass} received from request")
+    logger.debug(f"employee id {emp_id} and password received from request")
     employee = db.session.query(Employees).filter(Employees.id == str(emp_id)).first()
     logger.debug(f"employee data fetched {employee}")
     if not employee or check_password_hash(employee.password, emp_pass) == False:
@@ -70,6 +70,8 @@ def login_route():
     logger.debug(f"token generated for {employee.id}")
     ntfy_token = employee.ntfy_token
     ntfy_topic = employee.ntfy_topic
+    logger.debug(f"ntfy topic received: {ntfy_topic}")
+    logger.debug(f"ntfy token received: {ntfy_token}")
     return {"success": True, "token": token, "ntfy_token": ntfy_token, "ntfy_topic": ntfy_topic}, 200
 
 @app.route("/api/profile", methods=["GET"])
