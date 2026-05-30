@@ -16,6 +16,8 @@ from flask import *
 from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
 from config import *
 from auth import *
+from utils.ntfy import *
+
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
@@ -166,6 +168,12 @@ def add_employee():
     )
     db.session.add(employee_add)
     logger.debug(f"Employee Added Successfully {employee_add}")
+    db.session.commit()
+
+    topic, token = provision_ntfy_user(str(employee_add.id))
+    employee_add.ntfy_topic = topic
+    employee_add.ntfy_token = token
+
     db.session.commit()
 
     return {"success": True, "id": str(employee_add.id)}, 200
@@ -395,6 +403,13 @@ def import_employee():
                 employees.append(upload_employees)
             db.session.add_all(employees)
             db.session.commit()
+
+        for emp in employees:
+            topic, token = provision_ntfy_user(emp.id)
+            emp.ntfy_token = token
+            emp.ntfy_topic = topic
+
+        db.session.commit()
 
         return {"success": True}, 201
 
