@@ -223,6 +223,28 @@ def edit_employee():
 
     return {"success": True, "message": "Successfully Edited"}, 200
 
+@app.route("/api/employee/me/edit", methods=["PATCH"])
+@check_api_key
+@limiter.limit("1 per second")
+def emp_self_edit():
+    employee_uuid = uuid.UUID(g.employee_id)
+    email = request.json.get("email") if request.json.get("email") else None
+    password = generate_password_hash(request.json.get("password")) if request.json.get("password") else None
+
+    if not employee_uuid:
+        return abort(400, "Missing employee uuid")
+
+    employee = db.session.query(Employees).filter(Employees.id == employee_uuid).first()
+    if not employee:
+        return abort(404, "Employee not found")
+
+    if email: employee.email = email
+    if password: employee.password = password
+    db.session.commit()
+    logger.debug(f"Employee Edited Successfully {employee_uuid}-{email if email else 'password changed successfully'}")
+
+    return {"success": True, "message": "Successfully Edited"}, 200
+
 @app.route("/api/whitelist", methods=["GET"])
 @check_secret_key
 @limiter.limit("5 per second")
