@@ -825,6 +825,9 @@ def create_service_account():
     )
     db.session.add(account)
     db.session.commit()
+    topic, token = provision_ntfy_user(account.id)
+    account.ntfy_topic = topic
+    account.ntfy_token = token
     click.echo("Service Account created")
     click.echo(f"Account ID: {account.id}")
     click.echo(f"Password: {raw_passwd}")
