@@ -215,6 +215,7 @@ def edit_employee():
     if id_number: employee.id_number = id_number
     if join_date: employee.join_date = join_date
     if designation: employee.designation = designation
+    if password: employee.password = password
     if position: employee.position = position
     if is_admin is not None: employee.is_admin = is_admin
     logger.debug(f"Employee Edited Successfully")
