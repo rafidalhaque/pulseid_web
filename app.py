@@ -223,6 +223,25 @@ def edit_employee():
 
     return {"success": True, "message": "Successfully Edited"}, 200
 
+@app.route("/api/employee/delete", methods=["DELETE"])
+@check_api_key
+@limiter.limit("1 per second")
+def delete_employee():
+    if not g.is_admin:
+        return abort(403)
+    employee_uuid = request.json.get("uuid")
+    if not employee_uuid:
+        return abort(400, "Missing employee uuid")
+    employee = db.session.query(Employees).filter(Employees.id == employee_uuid).first()
+    if not employee:
+        return abort(404, "Employee not found")
+    else:
+        name = str(employee.name)
+        db.session.delete(employee)
+        db.session.commit()
+        logger.debug(f"Employee {employee_uuid} Deleted Successfully")
+        return {"success": True, "message": f"Employee: {name} Successfully Deleted"}, 200
+
 @app.route("/api/employee/me/edit", methods=["PATCH"])
 @check_api_key
 @limiter.limit("1 per second")
