@@ -667,6 +667,24 @@ def add_holiday():
 
     return {"success": True}, 200
 
+@app.route("/api/settings/holidays/delete", methods=["DELETE"])
+@check_api_key
+@limiter.limit("1 per second")
+def delete_holiday():
+    if not g.is_admin:
+        return abort(403)
+    holiday_id = uuid.UUID(request.json.get("holiday_id"))
+    if not holiday_id:
+        return abort(400, "Invalid ID")
+    holiday = db.session.query(Holidays).filter(Holidays.id == holiday_id).first()
+    holiday_date = holiday.date
+    if not holiday:
+        return abort(404, "Holiday Not found")
+
+    db.session.delete(holiday)
+    db.session.commit()
+    return {"success": True, "message": f"Holiday @ {holiday_date} deleted successfully"}, 200
+
 esp32_pending_command = None
 
 @app.route("/api/admin/esp32/command", methods=["POST"])
