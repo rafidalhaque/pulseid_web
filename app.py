@@ -421,6 +421,42 @@ def handle_leave_reqs():
     )
     return {"success": True}, 201
 
+@app.route("/api/attendance/leave/edit", methods=["PATCH"])
+@check_api_key
+@limiter.limit("1 per second")
+def edit_leave_req():
+    leave_req_id = uuid.UUID(request.json.get("id"))
+    requested_date = datetime.date.fromisoformat(request.json.get("date")) if request.json.get("date") else None
+    leave_type = request.json.get("leave_type") if request.json.get("leave_type") else None
+    leave_cause = request.json.get("leave_cause") if request.json.get("leave_cause") else None
+    leave_req = db.session.query(LeaveEntries).filter(LeaveEntries.id == leave_req_id, LeaveEntries.is_approved != "Approved").first()
+    if not leave_req:
+        logger.debug(f"leave_req not found. id: {leave_req_id}")
+        return abort(404, "Leave request not found")
+    if leave_req.is_approved == "Approved":
+        logger.debug(f"leave_req already approved. id: {leave_req_id}")
+        return abort(400, "Leave request already approved")
+    if str(leave_req.employee_id) != str(g.employee_id):
+        logger.debug(f"employee not matching with g.employee_id. id: {leave_req_id}")
+        return abort(403, "Not your leave request")
+    if requested_date: leave_req.date = requested_date
+    if leave_type: leave_req.leave_type = leave_type
+    if leave_cause: leave_req.leave_cause = leave_cause
+    db.session.commit()
+    logger.debug("leave req updated")
+    employee = db.session.query(Employees).filter_by(id=leave_req.employee_id).first()
+    admins = db.session.query(Employees).filter_by(is_admin=True).all()
+    for admin in admins:
+        send_notification(
+            topic=admin.ntfy_topic,
+            title="Leave Request Updated",
+            message=f"{employee.name} updated his leave request for {leave_req.date}",
+            priority="high",
+            click_url="pulseid://leaves/pending"
+        )
+        logger.debug(f"notification sent to admin: {admin.name}")
+    return {"success": True}, 201
+
 @app.route("/api/attendance/log", methods=["GET"])
 @check_api_key
 @limiter.limit("20 per second")
