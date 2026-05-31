@@ -611,6 +611,24 @@ def edit_work_policy():
 
     return {"success": True}, 200
 
+@app.route("/api/settings/work_policy/delete", methods=["DELETE"])
+@check_api_key
+@limiter.limit("1 per second")
+def delete_work_policy():
+    if not g.is_admin:
+        return abort(403)
+    work_policy_id = uuid.UUID(request.json.get("work_policy_id"))
+    if not work_policy_id:
+        return abort(400, "Invalid ID")
+
+    work_policy = db.session.query(WorkPolicy).filter(WorkPolicy.id == work_policy_id).first()
+    if not work_policy:
+        return abort(404, "Not found")
+
+    db.session.delete(work_policy)
+    db.session.commit()
+
+
 @app.route("/api/settings/holidays", methods=["GET"])
 @check_api_key
 @limiter.limit("1 per second")
