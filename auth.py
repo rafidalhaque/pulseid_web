@@ -13,7 +13,7 @@ def generate_token(employee_id: str, employee_position: int, employee_is_admin: 
             "pos": str(employee_position),
             "adm": employee_is_admin,
             "iat": dt_t,
-            "exp": dt_t + datetime.timedelta(minutes=30),
+            "exp": dt_t + datetime.timedelta(minutes=720),
         },
         jwt_secret,
         algorithm="HS256",
