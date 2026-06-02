@@ -849,7 +849,7 @@ def upload_releases():
     try:
         cf_client.put_object(
             Bucket=cf_bucket_name,
-            Key=version_map.get(platform),
+            Key=f"{platform}/{version_map.get(platform)}",
             Body=json.dumps(version_data),
             ContentType="application/json"
         )
@@ -876,7 +876,7 @@ def check_update():
         try:
             response = cf_client.get_object(
                 Bucket=cf_bucket_name,
-                Key=version_map.get(platform)
+                Key=f"{platform}/{version_map.get(platform)}"
             )
 
             version_json = json.loads(response["Body"].read().decode("utf-8"))
