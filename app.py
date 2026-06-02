@@ -847,10 +847,12 @@ def upload_releases():
         logger.error(f"R2 upload failed {str(e)}")
         return jsonify({"success": False, "msg": "Storage upload failed"}), 500
     try:
-        static_dir=os.path.join(app.root_path, "static")
-        os.makedirs(static_dir, exist_ok=True)
-        with open(os.path.join(static_dir, version_map.get(platform)), "w") as f:
-            json.dump(version_data, f)
+        cf_client.put_object(
+            Bucket=cf_bucket_name,
+            Key=version_map.get(platform),
+            Body=json.dumps(version_data),
+            ContentType="application/json"
+        )
     except Exception as e:
         logger.error(f"{version_map.get(platform)} upload failed {str(e)}")
         return jsonify({"success": False, "msg": "Storage upload failed"}), 500
@@ -871,9 +873,18 @@ def check_update():
         return jsonify({"success": False, "msg": "Unknown platform"}), 400
 
     try:
-        with open(os.path.join(app.root_path, "static", version_map.get(platform)), "r") as f:
-            version_json = json.loads(f.read())
+        try:
+            response = cf_client.get_object(
+                Bucket=cf_bucket_name,
+                Key=version_map.get(platform)
+            )
+
+            version_json = json.loads(response["Body"].read().decode("utf-8"))
             return jsonify(version_json), 200
+
+        except Exception as e:
+            logger.debug(f"update check failed {str(e)}")
+            return jsonify({"success": False, "msg": "No such file"}), 404
     except Exception as e:
         logger.debug(f"update check failed {str(e)}")
         return jsonify({"success": False, "msg": "No such file"}), 404
