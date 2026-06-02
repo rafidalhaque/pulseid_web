@@ -8,6 +8,7 @@ from cloudflare import Cloudflare
 import boto3
 from botocore.config import Config
 from zoneinfo import ZoneInfo
+from queue import Queue
 
 load_dotenv()
 
@@ -60,7 +61,8 @@ logger = logging.getLogger(__name__)
 metrics_logger = logging.getLogger("pulseid.metrics")
 debug_mode = os.getenv("DEBUG")
 if loki_url:
-    loki_handler = LokiHandler(
+    loki_handler = LokiQueueHandler(
+        Queue(-1),
         url=loki_url,
         tags={"application": "pulseid_backend"},
         version="1",
@@ -68,7 +70,8 @@ if loki_url:
     safe_loki_handler = SafeLokiHandler(loki_handler)
     logger.addHandler(safe_loki_handler)
     
-    metrics_loki = LokiHandler(
+    metrics_loki = LokiQueueHandler(
+        Queue(-1),
         url=loki_url,
         tags={"application": "pulseid_backend", "type": "esp32_metrics"},
         version="1",
