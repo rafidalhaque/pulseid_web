@@ -7,6 +7,7 @@ import time
 from functools import wraps
 from pathlib import Path
 
+from bitstring import methods
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import joinedload
@@ -66,13 +67,34 @@ def login_route():
     if not employee or check_password_hash(employee.password, emp_pass) == False:
         logger.debug(f"credentials for {employee} is not matched")
         return {"success": False, "message": "credentials did not matched"}, 403
-    token = generate_token(employee.id, employee.position, employee.is_admin)
+    access_token, refresh_token = generate_token(employee.id, employee.position, employee.is_admin)
     logger.debug(f"token generated for {employee.id}")
     ntfy_token = employee.ntfy_token
     ntfy_topic = employee.ntfy_topic
     logger.debug(f"ntfy topic received: {ntfy_topic}")
     logger.debug(f"ntfy token received: {ntfy_token}")
-    return {"success": True, "token": token, "ntfy_token": ntfy_token, "ntfy_topic": ntfy_topic}, 200
+    return {"success": True, "token": access_token, "refresh_token": refresh_token, "ntfy_token": ntfy_token, "ntfy_topic": ntfy_topic}, 200
+
+@app.route("/api/auth/refresh", methods=["POST"])
+@limiter.limit("5 per minute")
+def token_refresh():
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        abort(401, "Authorization Header Missing")
+    try:
+        decoded = jwt.decode(auth[7:], jwt_secret, algorithms=["HS256"])
+        if decoded.get("type") != "refresh":
+            abort(401, "Not a refresh token")
+        employee_uuid = uuid.UUID(decoded["sub"])
+        employee = db.session.query(Employees).filter(Employees.id == employee_uuid).first()
+        if not employee:
+            abort(401, "Employee Not Found")
+        access_token, _ = generate_token(employee.id, employee.position, employee.is_admin)
+        return {"success": True, "token": access_token}, 200
+    except jwt.ExpiredSignatureError:
+        abort(401, "Refresh Token Expired. Please Login Again")
+    except jwt.InvalidTokenError:
+        abort(401, "Refresh Token Invalid. Please Login Again")
 
 @app.route("/api/profile", methods=["GET"])
 @check_api_key

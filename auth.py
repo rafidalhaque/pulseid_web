@@ -5,21 +5,34 @@ from config import *
 from flask import *
 
 def generate_token(employee_id: str, employee_position: int, employee_is_admin: bool):
-    dt_t = datetime.datetime.now(datetime.timezone.utc)
-    logger.debug(f"datetime today {dt_t}")
-    jwt_token = jwt.encode(
+    now = datetime.datetime.now(datetime.timezone.utc)
+    logger.debug(f"datetime today {now}")
+    access_token = jwt.encode(
         {
             "sub": str(employee_id),
             "pos": str(employee_position),
             "adm": employee_is_admin,
-            "iat": dt_t,
-            "exp": dt_t + datetime.timedelta(minutes=720),
+            "type": "access",
+            "iat": now,
+            "exp": now + datetime.timedelta(minutes=15),
         },
         jwt_secret,
         algorithm="HS256",
     )
-    logger.debug(f"jwt token {jwt_token} for employee {employee_id}")
-    return jwt_token
+    logger.debug(f"access token generated for employee {employee_id}")
+    refresh_token = jwt.encode(
+        {
+            "sub": str(employee_id),
+            "type": "refresh",
+            "iat": now,
+            "exp": now + datetime.timedelta(days=90),
+        },
+        jwt_secret,
+        algorithm="HS256",
+    )
+    logger.debug(f"refresh token generated for employee {employee_id}")
+
+    return access_token, refresh_token
 
 def check_secret_key(f):
     """
@@ -51,6 +64,8 @@ def check_api_key(f):
             the_key = key[7:]
             logger.debug(f"token received: [{the_key}]")
             decoded_jwt = jwt.decode(the_key, jwt_secret, algorithms=["HS256"])
+            if decoded_jwt.get("type") != "access":
+                abort(401, "Invalid token type")
             g.employee_id = decoded_jwt["sub"]
             g.employee_position = decoded_jwt["pos"]
             g.is_admin = decoded_jwt["adm"]
