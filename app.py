@@ -16,6 +16,7 @@ from flask_migrate import Migrate
 from flask import *
 from flask_cors import CORS
 from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices
 from config import *
 from auth import *
 from utils.ntfy import *
@@ -107,7 +108,7 @@ def profile_route():
     logger.debug(f"all_view is {all_view}")
     user_profile_view = request.args.get("uuid")
     if all_view and g.is_admin:
-        employee = db.session.query(Employees).order_by(Employees.position).all()
+        employee = db.session.query(Employees).all()
         logger.debug(f"employee data fetched {employee}")
         return {"success": True, "employee": [e.to_dict() for e in employee]}, 200
     elif user_profile_view and g.is_admin:
