@@ -29,7 +29,7 @@ class Employees(db.Model):
     ntfy_topic = db.Column(db.String(255), nullable=True)
     attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
     attendance_log = db.relationship('AttendanceLog', back_populates='employee', lazy=True)
-    ble_creds = db.relationship('BleCreds', back_populates='employee', cascade='all, delete-orphan', passive_deletes=True, lazy=True)
+    ble_credentials = db.relationship('BleCreds', back_populates='employee', cascade='all, delete-orphan', passive_deletes=True, lazy=True)
 
     def to_dict(self):
         return {
