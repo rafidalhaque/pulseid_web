@@ -30,6 +30,7 @@ migrate = Migrate(app, db)
 
 def generated_ble_uuid():
     """
+    DEPRECATED in v2
     master_secret + member_uuid + date.isoformat
     :return: hashed secret uuid
     """
@@ -293,6 +294,7 @@ def emp_self_edit():
 @limiter.limit("5 per second")
 def whitelist():
     """
+    DEPRECATED in v2
     :return: current list of uuid's of employees
     """
     employees_secret = db.session.query(Employees.id, Employees.master_secret).all()
@@ -306,22 +308,16 @@ def whitelist():
 @check_secret_key
 @limiter.limit("5 per second")
 def record_attendance():
-    ble_uuid = request.json.get("uuid")
+    employee_uuid = request.json.get("uuid")
     timestamp = request.json.get("timestamp")
     rssi = request.json.get("rssi")
     door = request.json.get("door")
-    logger.debug(f"ble uuid {ble_uuid if ble_uuid else 'none'}, timestamp {timestamp if timestamp else 'none'}, rssi {rssi if rssi else 'none'}, door {door if door else 'none'} fetched from request")
-    if not ble_uuid or not timestamp or not rssi or not door:
+    logger.debug(f"ble uuid {employee_uuid if employee_uuid else 'none'}, timestamp {timestamp if timestamp else 'none'}, rssi {rssi if rssi else 'none'}, door {door if door else 'none'} fetched from request")
+    if not employee_uuid or not timestamp or not rssi or not door:
         logger.debug("parameter missing")
         return abort(400, "Missing parameters")
 
-    gened_uuids = generated_ble_uuid()
-    if ble_uuid not in gened_uuids.keys():
-        logger.debug(f"BLE UUID mismatch with {ble_uuid} and {gened_uuids.keys()}")
-        return abort(400, "BLE UUID mismatch")
-
-    employee_id = gened_uuids[ble_uuid]
-    logger.debug(f"{employee_id} mapped with ble_uuid")
+    employee_id = uuid.UUID(bytes=bytes.fromhex(employee_uuid))
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     if timestamp_object.tzinfo is None:
         timestamp_object = timestamp_object.replace(tzinfo=local_tz)
@@ -338,7 +334,6 @@ def record_attendance():
         db.session.add(attendance_new)
         log_attendance = AttendanceLog(
             employee_id=employee_id,
-            ble_uuid=ble_uuid,
             recorded_rssi=rssi,
             recorded_timestamp=timestamp_object,
             event_type="IN"
@@ -360,7 +355,6 @@ def record_attendance():
             logger.debug(f"attendance exit time logged in DB: {attendance_status}")
         log_attendance = AttendanceLog(
                 employee_id=employee_id,
-                ble_uuid=ble_uuid,
                 recorded_rssi=rssi,
                 recorded_timestamp=timestamp_object,
                 event_type=event_type
