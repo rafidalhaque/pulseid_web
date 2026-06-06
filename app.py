@@ -14,7 +14,7 @@ from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices
 from config import *
 from auth import *
 from utils.ntfy import *
@@ -766,22 +766,33 @@ def generate_nvs():
     if not g.is_admin:
         return abort(404)
 
-    wifi_ssid = request.json.get("wifi_ssid")
     base_url = request.json.get("base_url")
-    wifi_password = request.json.get("wifi_password")
     ota_password = request.json.get("ota_password")
-
-    if not all([wifi_ssid, base_url, wifi_password, ota_password]):
+    device_location = request.json.get("device_location")
+    if not all([base_url, ota_password]):
         return abort(400, "Missing Parameters")
 
     base_url = "https://" + base_url.removeprefix("http://").removeprefix("https://")
+
+    device_id = str(uuid.uuid4())
+    device_secret = secrets.token_hex(32)
+    device_secret_hash = hashlib.sha256(device_secret.encode()).hexdigest()
+
+    device = AuthorizedDevices(
+        id=device_id,
+        device_secret_hash=device_secret_hash,
+        location=device_location,
+        created_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+    db.session.add(device)
+    db.session.commit()
 
     nvs_csv = "key,type,encoding,value\n"
     nvs_csv += "pulseid_secrets,namespace,,\n"
     nvs_csv += f"base_url,data,string,{base_url}\n"
     nvs_csv += f"api_key,data,string,{api_key}\n" # api_key is the secret key for connection between esp32 and server, fetched from config.py (.env)
-    nvs_csv += f"wifi_ssid,data,string,{wifi_ssid}\n"
-    nvs_csv += f"wifi_password,data,string,{wifi_password}\n"
+    nvs_csv += f"device_id,data,string,{device_id}\n"
+    nvs_csv += f"device_secret,data,string,{device_secret}\n"
     nvs_csv += f"ota_password,data,string,{ota_password}\n"
 
     csv_fd, csv_path = tempfile.mkstemp(suffix=".csv")
