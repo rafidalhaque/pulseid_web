@@ -104,7 +104,7 @@ def profile_route():
     logger.debug(f"all_view is {all_view}")
     user_profile_view = request.args.get("uuid")
     if all_view and g.is_admin:
-        employee = db.session.query(Employees).all()
+        employee = db.session.query(Employees).order_by(Employees.position).all()
         logger.debug(f"employee data fetched {employee}")
         return {"success": True, "employee": [e.to_dict() for e in employee]}, 200
     elif user_profile_view and g.is_admin:
