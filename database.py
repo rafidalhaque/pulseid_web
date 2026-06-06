@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.sql import func
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import UUID
+from sqlalchemy import UUID, LargeBinary
 
 from tools import *
 from config import *
@@ -29,6 +29,7 @@ class Employees(db.Model):
     ntfy_topic = db.Column(db.String(255), nullable=True)
     attendance = db.relationship('Attendance', back_populates='employee', lazy=True)
     attendance_log = db.relationship('AttendanceLog', back_populates='employee', lazy=True)
+    ble_creds = db.relationship('BleCreds', back_populates='employee', cascade='all, delete-orphan', passive_deletes=True, lazy=True)
 
     def to_dict(self):
         return {
@@ -172,3 +173,22 @@ class WorkPolicy(db.Model):
             "late_minutes": self.late_minutes,
             "early_minutes": self.early_minutes,
         }
+
+class AuthorizedDevices(db.Model):
+    __tablename__ = f"{table_prefix if table_prefix else ''}_devices"
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    device_secret_hash = db.Column(LargeBinary, nullable=False)
+    location = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=db.func.now())
+
+class BleCreds(db.Model):
+    __tablename__ = f"{table_prefix if table_prefix else ''}_ble_credentials"
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id', ondelete='CASCADE'), nullable=False)
+    ltk = db.Column(LargeBinary, nullable=False)
+    irk = db.Column(LargeBinary, nullable=False)
+    shared_secret = db.Column(LargeBinary, nullable=False)
+    enrolled_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=db.func.now())
+    revoked = db.Column(db.Boolean, nullable=False, default=False)
+
+    employee = db.relationship('Employees', back_populates='ble_credentials')
