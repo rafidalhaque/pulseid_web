@@ -779,6 +779,19 @@ def generate_nvs():
 
     base_url = "https://" + base_url.removeprefix("http://").removeprefix("https://")
 
+    device_id = str(uuid.uuid4())
+    device_secret = secrets.token_hex(32)
+    device_secret_hash = hashlib.sha256(device_secret.encode()).digest()
+
+    device = AuthorizedDevices(
+        id=device_id,
+        device_secret_hash=device_secret_hash,
+        location=device_location,
+        created_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+    db.session.add(device)
+    db.session.commit()
+
     nvs_csv = "key,type,encoding,value\n"
     nvs_csv += "pulseid_secrets,namespace,,\n"
     nvs_csv += f"base_url,data,string,{base_url}\n"
