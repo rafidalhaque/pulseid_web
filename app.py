@@ -928,6 +928,31 @@ def check_device():
         return jsonify({"exists": False}), 401
     return jsonify({"exists": True}), 200
 
+@app.route("/api/ble/verify-device", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def verify_device():
+    device_uuid = uuid.UUID(request.json.get("device_uuid"))
+    nonce = request.json.get("nonce")
+    received_hmac = request.json.get("hmac")
+
+    if not all([device_uuid, nonce, received_hmac]):
+        return jsonify({"valid": False, "message": "Missing Parameters"}), 401
+
+    device = db.session.query(AuthorizedDevices).filter(AuthorizedDevices.id == device_uuid).first()
+    if not device:
+        return jsonify({"valid": False, "message": "Device not found"}), 401
+
+    expected_hmac = hmac.new(
+        device.device_secret,
+        bytes.fromhex(nonce),
+        hashlib.sha256
+    ).digest()
+
+    matched = secrets.compare_digest(expected_hmac, bytes.fromhex(received_hmac))
+
+    return jsonify({"valid": matched}), 200
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
