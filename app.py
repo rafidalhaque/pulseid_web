@@ -1036,6 +1036,21 @@ def revocation_list():
     revoked_list = db.session.query(BleCreds.employee_id).filter(BleCreds.revoked.is_(True)).all()
     return jsonify({"revoked": [r.employee_id.bytes.hex() for r in revoked_list]}), 200
 
+@app.route("/api/ble/revoke", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def revoke_access():
+    if not g.is_admin:
+        return abort(403, "You are not admin")
+
+    employee_uuid = uuid.UUID(request.json.get("employee_uuid"))
+    cred = db.session.query(BleCreds).filter(BleCreds.employee_id == employee_uuid).first()
+    if not cred:
+        return jsonify({"success": False}), 404
+    cred.revoked = True
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
