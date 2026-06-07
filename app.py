@@ -781,11 +781,11 @@ def generate_nvs():
 
     device_id = str(uuid.uuid4())
     device_secret = secrets.token_hex(32)
-    device_secret_hash = hashlib.sha256(device_secret.encode()).digest()
+    device_secret_bytes = device_secret.encode()
 
     device = AuthorizedDevices(
         id=device_id,
-        device_secret_hash=device_secret_hash,
+        device_secret_hash=device_secret_bytes,
         location=device_location,
         created_at=datetime.datetime.now(datetime.timezone.utc)
     )
