@@ -1027,6 +1027,12 @@ def token_lookup():
 
     return jsonify({"success": False}), 404
 
+@app.route("/api/ble/revocation-list", methods=["GET"])
+@check_secret_key
+@limiter.limit("20 per second")
+def revocation_list():
+    revoked_list = db.session.query(BleCreds.employee_id).filter(BleCreds.revoked.is_(True)).all()
+    return jsonify({"revoked": [r.employee_id.bytes.hex() for r in revoked_list]}), 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
