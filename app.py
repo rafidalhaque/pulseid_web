@@ -14,12 +14,14 @@ from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
+from flask_cors import CORS
 from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
 from config import *
 from auth import *
 from utils.ntfy import *
 
 app = Flask(__name__)
+CORS(app, origins=cors_origins, allow_headers=["Content-Type", "Authorization", "X-Admin-Key"])
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modify
