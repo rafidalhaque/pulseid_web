@@ -966,6 +966,41 @@ def enrollment_check():
     else:
         return jsonify({"eligible": False}), 200
 
+@app.route("/api/ble/key-backup", methods=["POST"])
+@check_secret_key
+@limiter.limit("20 per second")
+def key_backup():
+    if not all([request.json.get("employee_uuid"), request.json.get("ltk"),
+                request.json.get("irk"), request.json.get("shared_secret")]):
+        return abort(400, "Missing parameters")
+
+    employee_uuid = uuid.UUID(request.json.get("employee_uuid"))
+    ltk = bytes.fromhex(request.json.get("ltk"))
+    irk = bytes.fromhex(request.json.get("irk"))
+    shared_secret = bytes.fromhex(request.json.get("shared_secret"))
+
+    cred = db.session.query(BleCreds).filter(
+        BleCreds.employee_id == employee_uuid
+    ).first()
+
+    if cred:
+        cred.ltk = ltk
+        cred.irk = irk
+        cred.shared_secret = shared_secret
+        cred.revoked = False
+        cred.enrolled_at = datetime.datetime.now(datetime.timezone.utc)
+    else:
+        cred = BleCreds(
+            employee_id=employee_uuid,
+            ltk=ltk,
+            irk=irk,
+            shared_secret=shared_secret
+        )
+        db.session.add(cred)
+
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
