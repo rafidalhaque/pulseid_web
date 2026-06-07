@@ -7,14 +7,13 @@ import time
 from functools import wraps
 from pathlib import Path
 
-from bitstring import methods
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices, BleCreds
 from config import *
 from auth import *
 from utils.ntfy import *
@@ -941,7 +940,7 @@ def verify_device():
 
     device = db.session.query(AuthorizedDevices).filter(AuthorizedDevices.id == device_uuid).first()
     if not device:
-        return jsonify({"valid": False, "message": "Device not found"}), 401
+        return jsonify({"valid": False, "message": "Device not found"}), 200
 
     expected_hmac = hmac.new(
         device.device_secret,
@@ -952,6 +951,20 @@ def verify_device():
     matched = secrets.compare_digest(expected_hmac, bytes.fromhex(received_hmac))
 
     return jsonify({"valid": matched}), 200
+
+@app.route("/api/ble/enrollment-check", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def enrollment_check():
+    cred = db.session.query(BleCreds).filter(
+        BleCreds.employee_id == g.employee_id,
+        BleCreds.revoked == False
+    ).first()
+
+    if cred is None:
+        return jsonify({"eligible": True}), 200
+    else:
+        return jsonify({"eligible": False}), 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
