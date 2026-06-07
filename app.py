@@ -921,6 +921,18 @@ def check_update():
         logger.debug(f"update check failed {str(e)}")
         return jsonify({"success": False, "msg": "No such file"}), 404
 
+@app.route("/api/ble/device-exists", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def check_device():
+    device_uuid = uuid.UUID(request.json.get("device_uuid"))
+
+    device = db.session.query(AuthorizedDevices.id).filter(AuthorizedDevices.id == device_uuid).first()
+
+    if not device:
+        return jsonify({"exists": False}), 401
+    return jsonify({"exists": True}), 200
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
