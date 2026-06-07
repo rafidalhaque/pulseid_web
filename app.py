@@ -733,7 +733,7 @@ def esp32_ping():
     global pong
     pong = {"data": data, "received_at": time.time()}
     metrics_logger.info(
-        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')} ntp_time={data.get('ntp_time')}",
+        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} ip={data.get('ip')} ntp_time={data.get('ntp_time')}",
         extra={
             "tags": {
                 "device": "esp32",
@@ -757,7 +757,7 @@ def admin_ping():
         logger.debug(f"age {age_seconds}")
         return {"success": False, "msg": "ESP32 offline (last seen {:.0f}s ago)".format(age_seconds)}, 404
     logger.debug(f"Pong data {pong}")
-    return {"success": True, "uptime_ms": pong["data"]["uptime_ms"], "free_heap": pong["data"]["free_heap"], "wifi_ip": pong["data"]["wifi_ip"], "wifi_rssi": pong["data"]["wifi_rssi"], "ntp_time": pong["data"]["ntp_time"], "received_at": pong["received_at"]}, 200
+    return {"success": True, "uptime_ms": pong["data"]["uptime_ms"], "free_heap": pong["data"]["free_heap"], "wifi_ip": pong["data"]["ip"], "ntp_time": pong["data"]["ntp_time"], "received_at": pong["received_at"]}, 200
 
 
 @app.route("/api/iot/esp32/nvs", methods=["POST"])
