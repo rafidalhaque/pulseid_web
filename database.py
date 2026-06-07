@@ -177,7 +177,7 @@ class WorkPolicy(db.Model):
 class AuthorizedDevices(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_devices"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_secret_hash = db.Column(LargeBinary, nullable=False)
+    device_secret = db.Column(LargeBinary, nullable=False)
     location = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=db.func.now())
 
