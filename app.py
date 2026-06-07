@@ -7,22 +7,18 @@ import time
 from functools import wraps
 from pathlib import Path
 
-from bitstring import methods
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import joinedload
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
-from flask_cors import CORS
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices, BleCreds
 from config import *
 from auth import *
 from utils.ntfy import *
 
 app = Flask(__name__)
-CORS(app, origins=cors_origins, allow_headers=["Content-Type", "Authorization", "X-Admin-Key"])
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = track_modify
@@ -769,12 +765,10 @@ def generate_nvs():
     if not g.is_admin:
         return abort(404)
 
-    wifi_ssid = request.json.get("wifi_ssid")
     base_url = request.json.get("base_url")
-    wifi_password = request.json.get("wifi_password")
     ota_password = request.json.get("ota_password")
-
-    if not all([wifi_ssid, base_url, wifi_password, ota_password]):
+    device_location = request.json.get("device_location")
+    if not all([base_url, ota_password]):
         return abort(400, "Missing Parameters")
 
     base_url = "https://" + base_url.removeprefix("http://").removeprefix("https://")
@@ -796,8 +790,8 @@ def generate_nvs():
     nvs_csv += "pulseid_secrets,namespace,,\n"
     nvs_csv += f"base_url,data,string,{base_url}\n"
     nvs_csv += f"api_key,data,string,{api_key}\n" # api_key is the secret key for connection between esp32 and server, fetched from config.py (.env)
-    nvs_csv += f"wifi_ssid,data,string,{wifi_ssid}\n"
-    nvs_csv += f"wifi_password,data,string,{wifi_password}\n"
+    nvs_csv += f"device_id,data,string,{device_id}\n"
+    nvs_csv += f"device_secret,data,string,{device_secret}\n"
     nvs_csv += f"ota_password,data,string,{ota_password}\n"
 
     csv_fd, csv_path = tempfile.mkstemp(suffix=".csv")
@@ -946,7 +940,7 @@ def verify_device():
 
     device = db.session.query(AuthorizedDevices).filter(AuthorizedDevices.id == device_uuid).first()
     if not device:
-        return jsonify({"valid": False, "message": "Device not found"}), 401
+        return jsonify({"valid": False, "message": "Device not found"}), 200
 
     expected_hmac = hmac.new(
         device.device_secret,
@@ -957,6 +951,20 @@ def verify_device():
     matched = secrets.compare_digest(expected_hmac, bytes.fromhex(received_hmac))
 
     return jsonify({"valid": matched}), 200
+
+@app.route("/api/ble/enrollment-check", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def enrollment_check():
+    cred = db.session.query(BleCreds).filter(
+        BleCreds.employee_id == g.employee_id,
+        BleCreds.revoked == False
+    ).first()
+
+    if cred is None:
+        return jsonify({"eligible": True}), 200
+    else:
+        return jsonify({"eligible": False}), 200
 
 @app.cli.command("create-service-account")
 def create_service_account():
