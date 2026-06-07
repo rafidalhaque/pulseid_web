@@ -776,7 +776,7 @@ def generate_nvs():
 
     device_id = str(uuid.uuid4())
     device_secret = secrets.token_hex(32)
-    device_secret_hash = hashlib.sha256(device_secret.encode()).hexdigest()
+    device_secret_hash = hashlib.sha256(device_secret.encode()).digest()
 
     device = AuthorizedDevices(
         id=device_id,
