@@ -12,6 +12,7 @@ dependencies = [
     { name = "esp-idf-nvs-partition-gen" },
     { name = "esptool" },
     { name = "flask" },
+    { name = "flask-cors" },
     { name = "flask-limiter", extra = ["cli"] },
     { name = "flask-migrate" },
     { name = "flask-sqlalchemy" },
@@ -33,6 +34,7 @@ requires-dist = [
     { name = "esp-idf-nvs-partition-gen", specifier = ">=0.2.0" },
     { name = "esptool", specifier = ">=5.2.0" },
     { name = "flask", specifier = ">=3.1.3" },
+    { name = "flask-cors", specifier = ">=6.0.3" },
     { name = "flask-limiter", extras = ["cli"], specifier = ">=4.1.1" },
     { name = "flask-migrate", specifier = ">=4.1.0" },
     { name = "flask-sqlalchemy", specifier = ">=3.1.1" },
@@ -404,6 +406,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/00/35d85dcce6c57fdc871f3867d465d780f302a175ea360f62533f12b27e2b/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb", size = 759004, upload-time = "2026-02-19T05:00:57.678Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c", size = 103424, upload-time = "2026-02-19T05:00:56.027Z" },
+]
+
+[[package]]
+name = "flask-cors"
+version = "6.0.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+    { name = "werkzeug" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/0a/ccc5176e3f041fd731b5e6a644e18f74dcdbc3c5b8d42415bc2884309975/flask_cors-6.0.3.tar.gz", hash = "sha256:d8b13989a630eef065a7b8ff10a183761be5abbb7f001294bd2963e10946cadd", size = 92022, upload-time = "2026-06-06T23:29:31.621Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/c2/42a274bd1fc35c9fce442eb5c8614cb0f86e993f0cfd7b4b00eabb95b757/flask_cors-6.0.3-py3-none-any.whl", hash = "sha256:f49be9b367355a1ad3a871be5cfd1c4ef97100c81b2078b2cea1db8cd4e42389", size = 13158, upload-time = "2026-06-06T23:29:30.271Z" },
 ]
 
 [[package]]

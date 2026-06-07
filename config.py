@@ -82,3 +82,5 @@ if loki_url:
 local_tz = ZoneInfo(os.getenv("TZ", "Asia/Dhaka"))
 ntfy_base = os.getenv("NTFY_BASE_URL")
 ntfy_admin_token = os.getenv("NTFY_ADMIN_TOKEN")
+raw = os.environ.get("CORS_ORIGINS", "").strip()
+cors_origins = "*" if raw == "*" else [o.strip() for o in raw.split(",") if o.strip()]
