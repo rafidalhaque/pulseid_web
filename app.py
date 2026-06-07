@@ -1001,6 +1001,33 @@ def key_backup():
     db.session.commit()
     return jsonify({"success": True}), 200
 
+@app.route("/api/ble/token-lookup", methods=["POST"])
+@check_secret_key
+@limiter.limit("20 per second")
+def token_lookup():
+    token = request.json.get("token")
+    if not token:
+        return jsonify({"success": False}), 401
+
+    recv_token = bytes.fromhex(token)
+    epoch = int(time.time())
+    base = epoch - (epoch % 30)
+    windows = [base, base - 30]
+    creds = db.session.query(BleCreds).filter(BleCreds.revoked.is_(False)).all()
+    for c in creds:
+        mid = c.employee_id.bytes  # 16 raw bytes for HMAC key
+        for w in windows:
+            expected = hmac.new(mid, w.to_bytes(8, 'big'), hashlib.sha256).digest()[:8]
+            if secrets.compare_digest(expected, recv_token):
+                return jsonify({
+                    "member_id": c.employee_id.bytes.hex(),
+                    "ltk": c.ltk.hex(),
+                    "irk": c.irk.hex(),
+                }), 200
+
+    return jsonify({"success": False}), 404
+
+
 @app.cli.command("create-service-account")
 def create_service_account():
     name = "PulseID"
