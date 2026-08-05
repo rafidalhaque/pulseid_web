@@ -7,7 +7,6 @@ import time
 from functools import wraps
 from pathlib import Path
 
-from bitstring import methods
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.orm import joinedload
@@ -15,7 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from flask import *
 from flask_cors import CORS
-from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries
+from database import db, Employees, Attendance, AttendanceLog, Holidays, WorkPolicy, LeaveEntries, AuthorizedDevices, BleCreds
 from config import *
 from auth import *
 from utils.ntfy import *
@@ -30,6 +29,7 @@ migrate = Migrate(app, db)
 
 def generated_ble_uuid():
     """
+    DEPRECATED in v2
     master_secret + member_uuid + date.isoformat
     :return: hashed secret uuid
     """
@@ -293,6 +293,7 @@ def emp_self_edit():
 @limiter.limit("5 per second")
 def whitelist():
     """
+    DEPRECATED in v2
     :return: current list of uuid's of employees
     """
     employees_secret = db.session.query(Employees.id, Employees.master_secret).all()
@@ -306,22 +307,16 @@ def whitelist():
 @check_secret_key
 @limiter.limit("5 per second")
 def record_attendance():
-    ble_uuid = request.json.get("uuid")
+    employee_uuid = request.json.get("uuid")
     timestamp = request.json.get("timestamp")
     rssi = request.json.get("rssi")
     door = request.json.get("door")
-    logger.debug(f"ble uuid {ble_uuid if ble_uuid else 'none'}, timestamp {timestamp if timestamp else 'none'}, rssi {rssi if rssi else 'none'}, door {door if door else 'none'} fetched from request")
-    if not ble_uuid or not timestamp or not rssi or not door:
+    logger.debug(f"ble uuid {employee_uuid if employee_uuid else 'none'}, timestamp {timestamp if timestamp else 'none'}, rssi {rssi if rssi else 'none'}, door {door if door else 'none'} fetched from request")
+    if not employee_uuid or not timestamp or not rssi or not door:
         logger.debug("parameter missing")
         return abort(400, "Missing parameters")
 
-    gened_uuids = generated_ble_uuid()
-    if ble_uuid not in gened_uuids.keys():
-        logger.debug(f"BLE UUID mismatch with {ble_uuid} and {gened_uuids.keys()}")
-        return abort(400, "BLE UUID mismatch")
-
-    employee_id = gened_uuids[ble_uuid]
-    logger.debug(f"{employee_id} mapped with ble_uuid")
+    employee_id = uuid.UUID(bytes=bytes.fromhex(employee_uuid))
     timestamp_object = datetime.datetime.fromisoformat(timestamp)
     if timestamp_object.tzinfo is None:
         timestamp_object = timestamp_object.replace(tzinfo=local_tz)
@@ -338,7 +333,6 @@ def record_attendance():
         db.session.add(attendance_new)
         log_attendance = AttendanceLog(
             employee_id=employee_id,
-            ble_uuid=ble_uuid,
             recorded_rssi=rssi,
             recorded_timestamp=timestamp_object,
             event_type="IN"
@@ -360,7 +354,6 @@ def record_attendance():
             logger.debug(f"attendance exit time logged in DB: {attendance_status}")
         log_attendance = AttendanceLog(
                 employee_id=employee_id,
-                ble_uuid=ble_uuid,
                 recorded_rssi=rssi,
                 recorded_timestamp=timestamp_object,
                 event_type=event_type
@@ -740,7 +733,7 @@ def esp32_ping():
     global pong
     pong = {"data": data, "received_at": time.time()}
     metrics_logger.info(
-        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} wifi_rssi={data.get('wifi_rssi')} wifi_ip={data.get('wifi_ip')} ntp_time={data.get('ntp_time')}",
+        f"esp32_ping uptime_ms={data.get('uptime_ms')} free_heap={data.get('free_heap')} ip={data.get('ip')} ntp_time={data.get('ntp_time')}",
         extra={
             "tags": {
                 "device": "esp32",
@@ -764,7 +757,7 @@ def admin_ping():
         logger.debug(f"age {age_seconds}")
         return {"success": False, "msg": "ESP32 offline (last seen {:.0f}s ago)".format(age_seconds)}, 404
     logger.debug(f"Pong data {pong}")
-    return {"success": True, "uptime_ms": pong["data"]["uptime_ms"], "free_heap": pong["data"]["free_heap"], "wifi_ip": pong["data"]["wifi_ip"], "wifi_rssi": pong["data"]["wifi_rssi"], "ntp_time": pong["data"]["ntp_time"], "received_at": pong["received_at"]}, 200
+    return {"success": True, "uptime_ms": pong["data"]["uptime_ms"], "free_heap": pong["data"]["free_heap"], "wifi_ip": pong["data"]["ip"], "ntp_time": pong["data"]["ntp_time"], "received_at": pong["received_at"]}, 200
 
 
 @app.route("/api/iot/esp32/nvs", methods=["POST"])
@@ -774,22 +767,33 @@ def generate_nvs():
     if not g.is_admin:
         return abort(404)
 
-    wifi_ssid = request.json.get("wifi_ssid")
     base_url = request.json.get("base_url")
-    wifi_password = request.json.get("wifi_password")
     ota_password = request.json.get("ota_password")
-
-    if not all([wifi_ssid, base_url, wifi_password, ota_password]):
+    device_location = request.json.get("device_location")
+    if not all([base_url, ota_password]):
         return abort(400, "Missing Parameters")
 
     base_url = "https://" + base_url.removeprefix("http://").removeprefix("https://")
+
+    device_id = str(uuid.uuid4())
+    device_secret = secrets.token_hex(32)
+    device_secret_bytes = device_secret.encode()
+
+    device = AuthorizedDevices(
+        id=device_id,
+        device_secret_hash=device_secret_bytes,
+        location=device_location,
+        created_at=datetime.datetime.now(datetime.timezone.utc)
+    )
+    db.session.add(device)
+    db.session.commit()
 
     nvs_csv = "key,type,encoding,value\n"
     nvs_csv += "pulseid_secrets,namespace,,\n"
     nvs_csv += f"base_url,data,string,{base_url}\n"
     nvs_csv += f"api_key,data,string,{api_key}\n" # api_key is the secret key for connection between esp32 and server, fetched from config.py (.env)
-    nvs_csv += f"wifi_ssid,data,string,{wifi_ssid}\n"
-    nvs_csv += f"wifi_password,data,string,{wifi_password}\n"
+    nvs_csv += f"device_id,data,string,{device_id}\n"
+    nvs_csv += f"device_secret,data,string,{device_secret}\n"
     nvs_csv += f"ota_password,data,string,{ota_password}\n"
 
     csv_fd, csv_path = tempfile.mkstemp(suffix=".csv")
@@ -912,6 +916,140 @@ def check_update():
     except Exception as e:
         logger.debug(f"update check failed {str(e)}")
         return jsonify({"success": False, "msg": "No such file"}), 404
+
+@app.route("/api/ble/device-exists", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def check_device():
+    device_uuid = uuid.UUID(request.json.get("device_uuid"))
+
+    device = db.session.query(AuthorizedDevices.id).filter(AuthorizedDevices.id == device_uuid).first()
+
+    if not device:
+        return jsonify({"exists": False}), 401
+    return jsonify({"exists": True}), 200
+
+@app.route("/api/ble/verify-device", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def verify_device():
+    device_uuid = uuid.UUID(request.json.get("device_uuid"))
+    nonce = request.json.get("nonce")
+    received_hmac = request.json.get("hmac")
+
+    if not all([device_uuid, nonce, received_hmac]):
+        return jsonify({"valid": False, "message": "Missing Parameters"}), 401
+
+    device = db.session.query(AuthorizedDevices).filter(AuthorizedDevices.id == device_uuid).first()
+    if not device:
+        return jsonify({"valid": False, "message": "Device not found"}), 200
+
+    expected_hmac = hmac.new(
+        device.device_secret,
+        bytes.fromhex(nonce),
+        hashlib.sha256
+    ).digest()
+
+    matched = secrets.compare_digest(expected_hmac, bytes.fromhex(received_hmac))
+
+    return jsonify({"valid": matched}), 200
+
+@app.route("/api/ble/enrollment-check", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def enrollment_check():
+    cred = db.session.query(BleCreds).filter(
+        BleCreds.employee_id == g.employee_id,
+        BleCreds.revoked == False
+    ).first()
+
+    if cred is None:
+        return jsonify({"eligible": True}), 200
+    else:
+        return jsonify({"eligible": False}), 200
+
+@app.route("/api/ble/key-backup", methods=["POST"])
+@check_secret_key
+@limiter.limit("20 per second")
+def key_backup():
+    if not all([request.json.get("employee_uuid"), request.json.get("ltk"),
+                request.json.get("irk"), request.json.get("shared_secret")]):
+        return abort(400, "Missing parameters")
+
+    employee_uuid = uuid.UUID(request.json.get("employee_uuid"))
+    ltk = bytes.fromhex(request.json.get("ltk"))
+    irk = bytes.fromhex(request.json.get("irk"))
+    shared_secret = bytes.fromhex(request.json.get("shared_secret"))
+
+    cred = db.session.query(BleCreds).filter(
+        BleCreds.employee_id == employee_uuid
+    ).first()
+
+    if cred:
+        cred.ltk = ltk
+        cred.irk = irk
+        cred.shared_secret = shared_secret
+        cred.revoked = False
+        cred.enrolled_at = datetime.datetime.now(datetime.timezone.utc)
+    else:
+        cred = BleCreds(
+            employee_id=employee_uuid,
+            ltk=ltk,
+            irk=irk,
+            shared_secret=shared_secret
+        )
+        db.session.add(cred)
+
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
+@app.route("/api/ble/token-lookup", methods=["POST"])
+@check_secret_key
+@limiter.limit("20 per second")
+def token_lookup():
+    token = request.json.get("token")
+    if not token:
+        return jsonify({"success": False}), 401
+
+    recv_token = bytes.fromhex(token)
+    epoch = int(time.time())
+    base = epoch - (epoch % 30)
+    windows = [base, base - 30]
+    creds = db.session.query(BleCreds).filter(BleCreds.revoked.is_(False)).all()
+    for c in creds:
+        mid = c.employee_id.bytes  # 16 raw bytes for HMAC key
+        for w in windows:
+            expected = hmac.new(mid, w.to_bytes(8, 'big'), hashlib.sha256).digest()[:8]
+            if secrets.compare_digest(expected, recv_token):
+                return jsonify({
+                    "member_id": c.employee_id.bytes.hex(),
+                    "ltk": c.ltk.hex(),
+                    "irk": c.irk.hex(),
+                }), 200
+
+    return jsonify({"success": False}), 404
+
+@app.route("/api/ble/revocation-list", methods=["GET"])
+@check_secret_key
+@limiter.limit("20 per second")
+def revocation_list():
+    revoked_list = db.session.query(BleCreds.employee_id).filter(BleCreds.revoked.is_(True)).all()
+    return jsonify({"revoked": [r.employee_id.bytes.hex() for r in revoked_list]}), 200
+
+@app.route("/api/ble/revoke", methods=["POST"])
+@check_api_key
+@limiter.limit("20 per second")
+def revoke_access():
+    if not g.is_admin:
+        return abort(403, "You are not admin")
+
+    employee_uuid = uuid.UUID(request.json.get("employee_uuid"))
+    cred = db.session.query(BleCreds).filter(BleCreds.employee_id == employee_uuid).first()
+    if not cred:
+        return jsonify({"success": False}), 404
+    cred.revoked = True
+    db.session.commit()
+    return jsonify({"success": True}), 200
 
 @app.cli.command("create-service-account")
 def create_service_account():

@@ -101,7 +101,6 @@ class AttendanceLog(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_attendance_logs"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     employee_id = db.Column(UUID(as_uuid=True), db.ForeignKey(f'{Employees.__tablename__}.id'))
-    ble_uuid = db.Column(db.String(255), nullable=False)
     recorded_rssi = db.Column(db.Float, nullable=False)
     recorded_timestamp = db.Column(db.DateTime(timezone=True), nullable=False)
     event_type = db.Column(db.String(255), nullable=False, default="IN")
@@ -112,7 +111,6 @@ class AttendanceLog(db.Model):
             "id": str(self.id),
             "employee_id": str(self.employee_id),
             "employee_name": self.employee.name if self.employee else None,
-            "ble_uuid": str(self.ble_uuid),
             "recorded_rssi": self.recorded_rssi,
             "recorded_timestamp": self.recorded_timestamp.astimezone(ZoneInfo("Asia/Dhaka")).isoformat() if self.recorded_timestamp else None,
             "event_type": str(self.event_type),
@@ -177,7 +175,7 @@ class WorkPolicy(db.Model):
 class AuthorizedDevices(db.Model):
     __tablename__ = f"{table_prefix if table_prefix else ''}_devices"
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_secret_hash = db.Column(LargeBinary, nullable=False)
+    device_secret = db.Column(LargeBinary, nullable=False)
     location = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=db.func.now())
 
